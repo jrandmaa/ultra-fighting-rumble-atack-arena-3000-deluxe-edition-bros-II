@@ -1,0 +1,5 @@
+{ 
+    "name":"Stick",
+    "airSpeed":5,
+    "jumpPower":10
+}
