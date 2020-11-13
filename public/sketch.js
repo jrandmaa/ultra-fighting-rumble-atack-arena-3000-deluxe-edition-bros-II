@@ -20,6 +20,8 @@ let player2Fighter;
 let floorLevel = 125;
 let levelWidth = 800;
 
+let roomPassword;
+
 let hitInvincibilityPeriod = 100;
 
 let playerCharacterName = "Stick";
@@ -40,6 +42,8 @@ function preload(){
 }
 
 function setup() {
+  roomPassword = window.prompt("To connect with the other player, enter the same room password as them","");
+  socket.emit('roomEntered', roomPassword);
   createCanvas(800, 500, WEBGL);
   // noStroke();
   AIEnemy = new AIFighter(300,floorLevel);//BELOW - used to be -300
@@ -61,6 +65,7 @@ function setup() {
         xAirVelocity: playerFighter.xAirVelocity,
         frameIndex:playerFighter.frameIndex,
         state:0,//idle,attack,forward,back,jump
+        pass: roomPassword,
     }
    socket.emit('start', data);
 
@@ -76,7 +81,10 @@ function setup() {
 
                     }
                 });*/
-                otherPlayers.push(item);
+                if(item.pass == roomPassword){
+                  otherPlayers.push(item);
+                }
+                
                 //console.log(otherPlayers);
             }
         })    
