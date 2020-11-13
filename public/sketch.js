@@ -103,7 +103,7 @@ function draw() {
   background(0);
   texture(gradient);
   
-  camTargetX = 300;//-1 *(playerFighter.posx + AIEnemy.posx)/2;
+  camTargetX = playerFighter.posx;// 300;//-1 *(playerFighter.posx + AIEnemy.posx)/2;
   
   push();
   rotateX(PI);
