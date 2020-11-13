@@ -27,6 +27,7 @@ let playerCharacterName = "Stick";
 let debugModeEnabled = true;
 
 let players = [];
+let otherPlayers = [];
 
 //ref
   //ellipse(this.posx, this.posy - this.img.height/2, 10, 10);
