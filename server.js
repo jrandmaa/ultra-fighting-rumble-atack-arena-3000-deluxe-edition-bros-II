@@ -32,9 +32,9 @@ function heartbeat(){
 
 io.on('connection', function(socket){
     console.log('client connected, new player id is:' + socket.id);
-    socket.on('roomEntered', (passWord) => {
+    /*socket.on('roomEntered', (passWord) => {
 
-    });
+    });*/
     socket.on('start', (data) => {
         
         const circle = new Circle(socket.id, data.x, data.y, data.size, data.col, data.clicked, data.freq)
