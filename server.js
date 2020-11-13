@@ -22,7 +22,7 @@ class Circle {
 app.use('/', express.static(__dirname + '/public'));
 // app.use('/mobile', express.static(__dirname + '/public/mobile'));
 
-setInterval(heartbeat, 33);
+setInterval(heartbeat, 10);//was 33
 
 function heartbeat(){
     io.sockets.emit('heartbeat', circles)
