@@ -54,7 +54,7 @@ io.on('connection', function(socket){
     socket.on('update', (data) => {//problem probably here -- overwriting info about other clients
         let hits = 0;
         clients.forEach((client,i) => {
-            if(client => client.id == data.id){
+            if(client.id == data.id){
                 //console.log(client, socket.id);
                 clients[i] = data;
                 hits++;
@@ -91,7 +91,7 @@ io.on('connection', function(socket){
         console.log('Connecting player to room ID ', room);
         let plClient = new PlayerClient(socket.id,room,300,126,0,0,0,0);
         clients.push(plClient);
-        console.log('Current Clients: ', clients);//<-- outputs
+        console.log('Current Clients: ', clients);//<-- outputs correctly
         socket.join(room);
         socket.emit('connectionSuccess',room);
     });
