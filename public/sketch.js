@@ -18,9 +18,8 @@ let playerFighter;
 let player2Fighter;
 
 let floorLevel = 125;
-let levelWidth = 800;
-
-//let roomPassword;
+let levelWidth = 1100;
+let levelCenter = 0;
 
 let hitInvincibilityPeriod = 100;
 
@@ -30,7 +29,18 @@ let debugModeEnabled = true;
 
 let players = [];
 let otherPlayers = [];
+let connectedClients = [];
 
+let inRoom = false;
+let startButton;
+
+let joinRoomButton;
+let createRoomButton;
+let roomNameInput;
+let room;
+
+let availableRooms;
+let UIrooms = [];
 //ref
   //ellipse(this.posx, this.posy - this.img.height/2, 10, 10);
 
@@ -42,6 +52,7 @@ function preload(){
 }
 
 function setup() {
+  console.log('player id: ', socket.id);
   //roomPassword = window.prompt("To connect with the other player, enter the same room password as them","");
   //socket.emit('roomEntered', roomPassword);
   createCanvas(800, 500, WEBGL);
@@ -58,96 +69,127 @@ function setup() {
    gradient.rect(0,0,width, height);
    gradient.pop();
    //-----socket shit-------
-   const data = {
-        x: playerFighter.posx,
-        y:playerFighter.posy,
-        yVelocity: playerFighter.yVelocity,
-        xAirVelocity: playerFighter.xAirVelocity,
-        frameIndex:playerFighter.frameIndex,
-        state:0,//idle,attack,forward,back,jump
-        //pass: roomPassword,
-    }
-   socket.emit('start', data);
 
-    socket.on('heartbeat', (data) => {
-        
-        otherPlayers = [];
 
-        data.forEach((item, i) => {
-            //console.log(item.pass);
-            if(item.id != socket.id){
-                /*otherPlayers.forEach((existingPlayer, i) => {
-                    if(existingPlayer.id == item.id){
+  socket.on('heartbeat', (data) => {
+    //console.log(data);
+    connectedClients = [];
 
-                    }
-                });*/
-                //if(item.pass == roomPassword){
-                otherPlayers.push(item);
-                //}
-                
-                //console.log(otherPlayers);
-            }
-        })    
-    })
+      data.forEach((item, i) => {
+          //console.log(item.pass);
+          if(item.id != socket.id){
+            if(item.room == room){
+              connectedClients.push(item);
+            }/* else {
+              console.log("CLIENT JOINED BUT NOT IN THIS ROOM");
+            }*/
+            
+          }
+      })    
+  })
 
     socket.on('playFreq', (freq) => {
         console.log('received play sound message');
         osc.freq(freq);
         env.play(osc);
-    })
+    });
 
-    
+    socket.on('updateRooms', (refreshedRooms) => {
+      console.log('received updated available rooms', refreshedRooms);
+      availableRooms = refreshedRooms;
+      loadRoomUI();
+    });
+
+    socket.emit('requestAvailableRooms');
+
+    joinRoomButton = createButton('Join room');
+    joinRoomButton.position(200, 400);
+    joinRoomButton.mousePressed(joinRoom);
+
+    createRoomButton = createButton('Create room');
+    createRoomButton.mousePressed(createRoom);
+    createRoomButton.position(480, 400);
+
+    roomNameInput = createInput('');
+    roomNameInput.position(300, 400);
+    /*startButton = createButton('start');
+    startButton.position(300, 300);
+    startButton.mousePressed(joinRoom);*/
+
+    //SOCKET: EMIT createRoom !!!!!!!
+
     frameRate(100);
 }
 
+function joinRoom(){
+  room = roomNameInput.value();
+  socket.emit('room',room);
+  
+  inRoom=true;
+  //startButton.hide();
+  
+}
+
+function createRoom(){
+  socket.emit('requestAvailableRooms');
+  console.log("available rooms: ", availableRooms);
+}
+
 function draw() {
+  //console.log(connectedClients);
     socket.on('start', (data) => {
         console.log('player connected, id: ', data.id);
     })
   //CAMERA: zoom to fit both characters
   //camtargetx is average of both x values
-  
-  //move shit to different files so i dont have 800 lines again************************
-  background(0);
-  texture(gradient);
-  
-  camTargetX = -playerFighter.posx;// 300;//-1 *(playerFighter.posx + AIEnemy.posx)/2;
-  
-  push();
-  rotateX(PI);
-  translate(camTargetX, -200, camTargetZ);
-  rotateY(PI/2);
-   scale(2.5);
-  model(mod);
-  pop();
-  AIEnemy.display();
-  playerFighter.display();
-//-DELETE ME----
-otherPlayers.forEach(player => {
-    if(player.id != socket.id){
-        //console.log(player.id, "  ", socket.id);
-        AIEnemy.posx = player.x;
-        AIEnemy.posy = player.y;
-        AIEnemy.state = player.state;
+  if(inRoom){
+    background(0);
+      texture(gradient);
+      
+      camTargetX = -playerFighter.posx;// 300;//-1 *(playerFighter.posx + AIEnemy.posx)/2;
+      
+      push();
+      rotateX(PI);
+      translate(camTargetX, -200, camTargetZ);
+      rotateY(PI/2);
+      scale(2.5);
+      model(mod);
+      pop();
+      AIEnemy.display();
+      playerFighter.display();
+    //-DELETE ME----
+    connectedClients.forEach(player => {
+        if(player.id != socket.id){
+            //console.log(player.id, "  ", socket.id);
+            AIEnemy.posx = player.x;
+            AIEnemy.posy = player.y;
+            AIEnemy.state = player.state;
+        }
+        //UPDATE position not draw
         
-    }
-    //UPDATE position not draw
-    
-    //ellipse(player.x+camTargetX,player.y,30,30);
-})
-const data = {
-    x: playerFighter.posx,
-    y:playerFighter.posy,
-    yVelocity: playerFighter.yVelocity,
-    xAirVelocity: playerFighter.xAirVelocity,
-    frameIndex:playerFighter.frameIndex,
-    id:socket.id,
-    state:playerFighter.state,
-    //pass: roomPassword,
-}
+        //ellipse(player.x+camTargetX,player.y,30,30);
+      })
+      const data = {
+          x: playerFighter.posx,
+          y:playerFighter.posy,
+          yVelocity: playerFighter.yVelocity,
+          xAirVelocity: playerFighter.xAirVelocity,
+          frameIndex:playerFighter.frameIndex,
+          id:socket.id,
+          state:playerFighter.state,
+          room:room,
+          //pass: roomPassword,
+      }
 
-socket.emit('update', data);
-//--------------
+      socket.emit('update', data);
+      //--------------
+  } else {
+    //mainmenu
+    background(0);
+    
+  }
+  //move shit to different files so i dont have 800 lines again************************
+  
 }
 
 function displayPlayer(ply){
@@ -267,10 +309,10 @@ class PlayerFighter{
   }
   display(){
     //console.log(this.state);
-    if(this.posx < -levelWidth/2){
-      this.posx = -levelWidth/2;
-    } else if(this.posx > levelWidth/2){
-      this.posx = levelWidth/2;
+    if(this.posx < -levelWidth/2 + levelCenter){
+      this.posx = -levelWidth/2 + levelCenter;
+    } else if(this.posx > levelWidth/2 + levelCenter){
+      this.posx = levelWidth/2 + levelCenter;
     }/* else if (this.posx > AIEnemy.posx - AIEnemy.image.width){
       this.posx = AIEnemy.posx - AIEnemy.image.width;
     }*/
@@ -344,7 +386,7 @@ class PlayerFighter{
     this.state = 0;
   }
   left(){
-    if(this.posx > -levelWidth/2){
+    if(this.posx > -levelWidth/2 + levelCenter){
       this.posx -=5;
     }
     this.sprite.addImage(this.walkBackwardsImage);
@@ -379,3 +421,27 @@ function keyPressed(){
   }
 }
 
+socket.on('connectionSuccess', function(data) {
+  console.log('Successfully connected to room with ID = ', data);
+});
+
+socket.on('message', function(data) {
+  console.log('Message from server : ', data);
+});
+
+function loadRoomUI(){
+  availableRooms.forEach((item, i) => {
+    tempRoom = new availableRoomUI(item,i);
+    UIrooms.push(tempRoom);
+  }) 
+}
+
+class availableRoomUI {
+  topMargin = 200;
+  constructor(room,index){//and # players?
+    this.room = room;
+    this.button = createButton(room);
+    this.button.size(300,50);
+    this.button.position(400, this.topMargin+(index*50));
+  }
+}
