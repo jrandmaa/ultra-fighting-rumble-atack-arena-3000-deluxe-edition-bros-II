@@ -4,8 +4,8 @@ socket.on('connect', () => {
     console.log('client connected')
 })
 
-let myCircle;
-let otherCircles = [];
+let canvasWidth = 800;
+let canvasHeight = 500;
 
 let img, mod;
 let theta = 0;
@@ -35,7 +35,7 @@ let inRoom = false;
 let startButton;
 
 let joinRoomButton;
-let createRoomButton;
+let refreshButton;
 let roomNameInput;
 let room;
 
@@ -55,7 +55,7 @@ function setup() {
   console.log('player id: ', socket.id);
   //roomPassword = window.prompt("To connect with the other player, enter the same room password as them","");
   //socket.emit('roomEntered', roomPassword);
-  createCanvas(800, 500, WEBGL);
+  createCanvas(canvasWidth, canvasHeight, WEBGL);
   // noStroke();
   AIEnemy = new AIFighter(300,floorLevel);//BELOW - used to be -300
   playerFighter = new PlayerFighter(-Math.floor(Math.random() * 300) - 1,floorLevel,"Stick");
@@ -103,12 +103,12 @@ function setup() {
     socket.emit('requestAvailableRooms');
 
     joinRoomButton = createButton('Join room');
-    joinRoomButton.position(200, 400);
+    joinRoomButton.position(480, 400);
     joinRoomButton.mousePressed(joinRoom);
 
-    createRoomButton = createButton('Create room');
-    createRoomButton.mousePressed(createRoom);
-    createRoomButton.position(480, 400);
+    refreshButton = createButton('Refresh');
+    refreshButton.mousePressed(refreshRooms);
+    refreshButton.position(200, 400);
 
     roomNameInput = createInput('');
     roomNameInput.position(300, 400);
@@ -130,7 +130,7 @@ function joinRoom(){
   
 }
 
-function createRoom(){
+function refreshRooms(){
   socket.emit('requestAvailableRooms');
   console.log("available rooms: ", availableRooms);
 }
@@ -429,7 +429,7 @@ socket.on('message', function(data) {
   console.log('Message from server : ', data);
 });
 
-function loadRoomUI(){
+function loadRoomUI(){//maybe deal with if it goes over the screen
   availableRooms.forEach((item, i) => {
     tempRoom = new availableRoomUI(item,i);
     UIrooms.push(tempRoom);
@@ -437,11 +437,17 @@ function loadRoomUI(){
 }
 
 class availableRoomUI {
-  topMargin = 200;
+  topMargin = 100;
+  bWidth = 250;
+  bHeight = 20;
+  room = "";
   constructor(room,index){//and # players?
-    this.room = room;
+    this.roomName = room;
     this.button = createButton(room);
-    this.button.size(300,50);
-    this.button.position(400, this.topMargin+(index*50));
+    this.button.size(this.bWidth,this.bHeight);
+    this.button.position(canvasWidth/2 - this.bWidth/2, this.topMargin+(index*this.bHeight));
+    this.button.mousePressed(function() { roomNameInput.value(room);});//roomNameInput
   }
+  
 }
+
