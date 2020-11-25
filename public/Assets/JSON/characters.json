@@ -1,0 +1,5 @@
+{
+"characters":[
+    {"name":"Stick", "speed":1,"animSpeed":1, "weight":1,"attackDMG":20}
+]
+}

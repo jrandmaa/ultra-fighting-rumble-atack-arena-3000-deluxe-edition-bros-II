@@ -29,11 +29,13 @@ x: playerFighter.posx,
           */
 
 let clients = [];
+let rooms = {};
+
 
 app.use('/', express.static(__dirname + '/public'));
 // app.use('/mobile', express.static(__dirname + '/public/mobile'));
 
-setInterval(heartbeat, 10);//was 33
+setInterval(heartbeat, 3);//was 33
 
 function heartbeat(){
     io.sockets.emit('heartbeat', clients);
@@ -58,6 +60,9 @@ io.on('connection', function(socket){
                 //console.log(client, socket.id);
                 clients[i] = data;
                 hits++;
+                /*if !(clients.room in rooms){
+
+                }*/
                 //console.log(hits, socket.id, data.id);
             }
         });
@@ -80,10 +85,13 @@ io.on('connection', function(socket){
     socket.on('requestAvailableRooms', function() {
         console.log('current clients', clients);//<--- outputs incorrectly
         availableRooms = getRooms();
-        socket.emit('updateRooms', availableRooms);
+        //vvvv used to be availableRooms
+        socket.emit('updateRooms', rooms);
     });
 
     socket.on('disconnect', function() {
+        //GET ROOM FROM ID, AND DECREMENT ROOM VAL HERE [][][]
+
         console.log("Client has disconnected");
       });
 
@@ -91,9 +99,17 @@ io.on('connection', function(socket){
         console.log('Connecting player to room ID ', room);
         let plClient = new PlayerClient(socket.id,room,300,126,0,0,0,0);
         clients.push(plClient);
-        console.log('Current Clients: ', clients);//<-- outputs correctly
         socket.join(room);
         socket.emit('connectionSuccess',room);
+
+        //if dictionary already contains: dict[key] = val+1
+        //else, new entry with val 1 
+        if(room in rooms){
+            rooms[room] = rooms[room]+1;
+        } else {
+            rooms[room] = 1;
+        }
+
     });
 });
 

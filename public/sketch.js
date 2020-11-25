@@ -7,7 +7,7 @@ socket.on('connect', () => {
 let canvasWidth = 800;
 let canvasHeight = 500;
 
-let img, mod;
+let img, mod, BGtext, BGImage;
 let theta = 0;
 let gradient;
 let myShader;
@@ -31,7 +31,10 @@ let players = [];
 let otherPlayers = [];
 let connectedClients = [];
 
-let inRoom = false;
+let UIFont;
+
+let inRoom = false;//replace with
+let menuState = 0;//title screen, room select, char select, game
 let startButton;
 
 let joinRoomButton;
@@ -41,22 +44,59 @@ let room;
 
 let availableRooms;
 let UIrooms = [];
+
+//temp
+let xInput;
+let yInput;
+let zInput;
+
+//time stuff
+let date
+
+let characterInfo;
+let characters;
+
+/*
+now:
+- make room headers actually have text
+--------
+- flip canvas
+-character jumping moves camera y above a point
+- non placeholder font
+-gameplay :(((
+*/
+
+
 //ref
   //ellipse(this.posx, this.posy - this.img.height/2, 10, 10);
 
 
 function preload(){
-
-  mod = loadModel('tempBG.obj');
+  UIFont = loadFont('Assets/Placeholder/SHPinscher-Regular.otf');
+  characterInfo = loadJSON('Assets/JSON/characters.json');
+  characters = characterInfo.characters;
+  BGtext = loadImage('Assets/Textures/tempBG-text-f7.png');
+  BGImage = loadImage('Assets/Textures/sky.png');
+  mod = loadModel('tempBG2.obj');
   myShader = loadShader('basic.vert', 'basic.frag');
 }
 
+function startTitle(){
+  menuState=1;
+  socket.emit('requestAvailableRooms');
+  startButton.hide();
+}
+
 function setup() {
+  
   console.log('player id: ', socket.id);
   //roomPassword = window.prompt("To connect with the other player, enter the same room password as them","");
   //socket.emit('roomEntered', roomPassword);
   createCanvas(canvasWidth, canvasHeight, WEBGL);
   // noStroke();
+  startButton = createImg('Assets/UI/START.png');
+  startButton.mousePressed(startTitle);
+  startButton.center();
   AIEnemy = new AIFighter(300,floorLevel);//BELOW - used to be -300
   playerFighter = new PlayerFighter(-Math.floor(Math.random() * 300) - 1,floorLevel,"Stick");
 
@@ -97,35 +137,45 @@ function setup() {
     socket.on('updateRooms', (refreshedRooms) => {
       console.log('received updated available rooms', refreshedRooms);
       availableRooms = refreshedRooms;
-      loadRoomUI();
+      if(menuState == 1){
+        loadRoomUI();
+      }
+      
     });
 
     socket.emit('requestAvailableRooms');
 
-    joinRoomButton = createButton('Join room');
-    joinRoomButton.position(480, 400);
-    joinRoomButton.mousePressed(joinRoom);
-
-    refreshButton = createButton('Refresh');
-    refreshButton.mousePressed(refreshRooms);
-    refreshButton.position(200, 400);
-
-    roomNameInput = createInput('');
-    roomNameInput.position(300, 400);
+    
     /*startButton = createButton('start');
     startButton.position(300, 300);
     startButton.mousePressed(joinRoom);*/
 
     //SOCKET: EMIT createRoom !!!!!!!
-
     frameRate(100);
 }
 
 function joinRoom(){
   room = roomNameInput.value();
   socket.emit('room',room);
-  
+  date = new Date;
   inRoom=true;
+/*
+let joinRoomButton;
+let refreshButton;
+let roomNameInput;
+let room;
+
+let availableRooms;
+let UIrooms = [];
+*/
+  joinRoomButton.hide();
+  refreshButton.hide();
+  roomNameInput.hide();
+  UIrooms.forEach(rm => rm.hide());
+
+
+
+  menuState = 3;//make 2 when character select done
   //startButton.hide();
   
 }
@@ -142,54 +192,79 @@ function draw() {
     })
   //CAMERA: zoom to fit both characters
   //camtargetx is average of both x values
-  if(inRoom){
-    background(0);
-      texture(gradient);
+  switch(menuState){
+    case 0:
+      background(0);
+      break;
+    case 1:
+      background(109, 107, 125);
+      UIrooms.forEach(rm => drawRoomText(rm));
+        //UIrooms.push(tempRoom);
       
+      break;
+    case 2:
+      break;
+    case 3:
+      background(0);//161, 211, 247);//(BGImage);
       camTargetX = -playerFighter.posx;// 300;//-1 *(playerFighter.posx + AIEnemy.posx)/2;
-      
+      ambientLight(10,10,10);//xInput.value(),xInput.value(),xInput.value());
+      spotLight(235,255,255, camTargetX +258,-315,-145,0,1,0, 100);
+      //^^ streetlamp
+      let spotIntensity = 7;
+      //for(i = 0, i < spotIntensity; i += 1){ 
+      //}
+      //^ this breaks if i use a for loop i guess
+      let spotlightOffset = Math.tan(millis() /1000) / 36 ;
+      spotLight(255,255,255, camTargetX+ 864,74,48,-50,+ spotlightOffset,0, 100);
+      spotLight(255,255,255, camTargetX+ 864,74,48,-50,+ spotlightOffset,0, 100);
+      spotLight(255,255,255, camTargetX+ 864,74,48,-50,+ spotlightOffset,0, 100);
+      spotLight(255,255,255, camTargetX+ 864,74,48,-50,+ spotlightOffset,0, 100);
+      spotLight(255,255,255, camTargetX+ 864,74,48,-50,+ spotlightOffset,0, 100);
+      spotLight(255,255,255, camTargetX+ 864,74,48,-50,+ spotlightOffset,0, 100);
+      directionalLight(120, 120, 120, 0.9,8.7,-13.25);//xInput.value(), yInput.value(), zInput.value());
+      //0.55, -3.35, -0.9);
       push();
       rotateX(PI);
       translate(camTargetX, -200, camTargetZ);
       rotateY(PI/2);
       scale(2.5);
+      noStroke();
+      texture(BGtext);
       model(mod);
       pop();
       AIEnemy.display();
       playerFighter.display();
-    //-DELETE ME----
-    connectedClients.forEach(player => {
-        if(player.id != socket.id){
-            //console.log(player.id, "  ", socket.id);
-            AIEnemy.posx = player.x;
-            AIEnemy.posy = player.y;
-            AIEnemy.state = player.state;
+      //-DELETE ME----
+      connectedClients.forEach(player => {
+          if(player.id != socket.id){
+              //console.log(player.id, "  ", socket.id);
+              AIEnemy.posx = player.x;
+              AIEnemy.posy = player.y;
+              AIEnemy.state = player.state;
+          }
+          //UPDATE position not draw
+          //ellipse(player.x+camTargetX,player.y,30,30);
+        })
+        const data = {
+            x: playerFighter.posx,
+            y:playerFighter.posy,
+            yVelocity: playerFighter.yVelocity,
+            xAirVelocity: playerFighter.xAirVelocity,
+            frameIndex:playerFighter.frameIndex,
+            id:socket.id,
+            state:playerFighter.state,
+            room:room,
         }
-        //UPDATE position not draw
-        
-        //ellipse(player.x+camTargetX,player.y,30,30);
-      })
-      const data = {
-          x: playerFighter.posx,
-          y:playerFighter.posy,
-          yVelocity: playerFighter.yVelocity,
-          xAirVelocity: playerFighter.xAirVelocity,
-          frameIndex:playerFighter.frameIndex,
-          id:socket.id,
-          state:playerFighter.state,
-          room:room,
-          //pass: roomPassword,
-      }
-
-      socket.emit('update', data);
-      //--------------
-  } else {
+        socket.emit('update', data);
+        //--------------
+    
+      break;
+  }
+   /*else {
     //mainmenu
     background(0);
-    
-  }
+  }*/
   //move shit to different files so i dont have 800 lines again************************
-  
 }
 
 function displayPlayer(ply){
@@ -293,16 +368,17 @@ class PlayerFighter{
     console.log(obj.name);
     let requestURL = 'Assets/Characters/Stick/Stick.json';*/
     
+    
     //[][][][][][][][][][][][][][][][][][][][][][][][][][][][][][]
     this.posx = px;
     this.posy = py;
     this.sprite = createSprite();
-    this.crouchImage = loadImage('Assets/Characters/Stick/crouch.png');
-    this.idleImage = loadImage('Assets/Characters/Stick/idle.gif');
-    this.standingAttackImage = loadImage('Assets/Characters/Stick/standing-attack.png');
-    this.walkImage = loadImage('Assets/Characters/Stick/walk.gif');
-    this.walkBackwardsImage = loadImage('Assets/Characters/Stick/walk-reverse.gif');
-    this.jumpImage = loadImage('Assets/Characters/Stick/jump.png');
+    this.crouchImage = loadImage('Assets/Characters/'+playerCharacterName+'/crouch.png');
+    this.idleImage = loadImage('Assets/Characters/'+playerCharacterName+'/idle.gif');
+    this.standingAttackImage = loadImage('Assets/Characters/'+playerCharacterName+'/standing-attack.png');
+    this.walkImage = loadImage('Assets/Characters/'+playerCharacterName+'/walk.gif');
+    this.walkBackwardsImage = loadImage('Assets/Characters/'+playerCharacterName+'/walk-reverse.gif');
+    this.jumpImage = loadImage('Assets/Characters/'+playerCharacterName+'/jump.png');
     //this.walkImage2 = loadImage('Assets/Placeholder/default-player-walk2.png');
     this.sprite.addImage(this.idleImage);
     
@@ -430,10 +506,41 @@ socket.on('message', function(data) {
 });
 
 function loadRoomUI(){//maybe deal with if it goes over the screen
-  availableRooms.forEach((item, i) => {
+  joinRoomButton = createButton('Join room');
+  joinRoomButton.position(480, 400);
+  joinRoomButton.mousePressed(joinRoom);
+
+  refreshButton = createButton('Refresh');
+  refreshButton.mousePressed(refreshRooms);
+  refreshButton.position(200, 400);
+
+  roomNameInput = createInput('');
+  roomNameInput.position(300, 400);
+
+  /*xInput = createSlider(-200, 200, -50, 1);
+  xInput.position(10, 10);
+  yInput = createSlider(-200, 200, 0, 1);
+  yInput.position(10, 20);
+  zInput = createSlider(-200, 200, 0, 1);
+  zInput.position(10, 30);*/
+  var i = 0;
+  for(const [key, value] of Object.entries(availableRooms)){
+    tempRoom = new availableRoomUI(key,i,value);
+    UIrooms.push(tempRoom);
+    i++;
+  }
+  /*availableRooms.forEach((item, i) => {
     tempRoom = new availableRoomUI(item,i);
     UIrooms.push(tempRoom);
-  }) 
+  }) */
+}
+
+function drawRoomText(UIrm){
+ /* textFont(UIFont);
+  textSize(12);
+  text('ass',15,-UIrm.posy);
+  */
+ //THIS is for when custom buttons
 }
 
 class availableRoomUI {
@@ -441,13 +548,21 @@ class availableRoomUI {
   bWidth = 250;
   bHeight = 20;
   room = "";
-  constructor(room,index){//and # players?
+  
+  constructor(room,index,numPlayers){//and # players?
+    this.numPlayers = numPlayers;
     this.roomName = room;
-    this.button = createButton(room);
+    this.button = createButton(room);//createImg('Assets/Placeholder/UIBox.png');//createButton(room + '__________________________Players: ' + numPlayers);//+ '     ' + numPlayers);
     this.button.size(this.bWidth,this.bHeight);
-    this.button.position(canvasWidth/2 - this.bWidth/2, this.topMargin+(index*this.bHeight));
+    this.posx = canvasWidth/2 - this.bWidth/2;
+    this.posy = this.topMargin+(index*this.bHeight);
+    this.button.position(this.posx, this.posy);
     this.button.mousePressed(function() { roomNameInput.value(room);});//roomNameInput
+  }
+  hide(){
+    this.button.hide();
   }
   
 }
+
 
