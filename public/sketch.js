@@ -529,10 +529,6 @@ function loadRoomUI(){//maybe deal with if it goes over the screen
     UIrooms.push(tempRoom);
     i++;
   }
-  /*availableRooms.forEach((item, i) => {
-    tempRoom = new availableRoomUI(item,i);
-    UIrooms.push(tempRoom);
-  }) */
 }
 
 function drawRoomText(UIrm){
