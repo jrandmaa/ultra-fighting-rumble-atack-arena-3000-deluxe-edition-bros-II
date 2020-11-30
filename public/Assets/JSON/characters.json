@@ -1,5 +1,6 @@
 {
-"characters":[
-    {"name":"Stick", "speed":1,"animSpeed":1, "weight":1,"attackDMG":20}
+"characters" : [
+    {"name":"Stick", "speed":1,"animSpeed":1, "weight":1,"attackDMG":20},
+    {"name":"Maurice", "speed":0.5,"animSpeed":0.5, "weight":5,"attackDMG":40}
 ]
 }

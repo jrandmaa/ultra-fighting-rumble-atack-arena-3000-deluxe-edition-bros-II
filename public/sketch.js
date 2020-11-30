@@ -7,6 +7,8 @@ socket.on('connect', () => {
 let canvasWidth = 800;
 let canvasHeight = 500;
 
+let canvas;
+
 let img, mod, BGtext, BGImage;
 let theta = 0;
 let gradient;
@@ -23,7 +25,8 @@ let levelCenter = 0;
 
 let hitInvincibilityPeriod = 100;
 
-let playerCharacterName = "Stick";
+let playerCharacterName = null;// = "Maurice";
+let player2CharacterName = null;
 
 let debugModeEnabled = true;
 
@@ -55,12 +58,13 @@ let date
 
 let characterInfo;
 let characters;
+let characterPortraits;
 
 /*
 now:
-- make room headers actually have text
+- make new spritesheet, make sure character switch works
+- once have portraits: char select
 --------
-- flip canvas
 -character jumping moves camera y above a point
 - non placeholder font
 -gameplay :(((
@@ -73,12 +77,18 @@ now:
 
 function preload(){
   UIFont = loadFont('Assets/Placeholder/SHPinscher-Regular.otf');
-  characterInfo = loadJSON('Assets/JSON/characters.json');
-  characters = characterInfo.characters;
+  loadJSON('Assets/JSON/characters.json', pullData);
   BGtext = loadImage('Assets/Textures/tempBG-text-f7.png');
   BGImage = loadImage('Assets/Textures/sky.png');
   mod = loadModel('tempBG2.obj');
   myShader = loadShader('basic.vert', 'basic.frag');
+}
+
+function pullData(info){
+  //characterInfo = info;
+  characters = info;
+  console.log(info);
+  //console.log(ass[0]);
 }
 
 function startTitle(){
@@ -88,11 +98,10 @@ function startTitle(){
 }
 
 function setup() {
-  
   console.log('player id: ', socket.id);
-  //roomPassword = window.prompt("To connect with the other player, enter the same room password as them","");
   //socket.emit('roomEntered', roomPassword);
-  createCanvas(canvasWidth, canvasHeight, WEBGL);
+  canvas = createCanvas(canvasWidth, canvasHeight, WEBGL);
+  canvas.drawingContext.imageSmoothingEnabled = false;
   // noStroke();
   startButton = createImg('Assets/UI/START.png');
   startButton.mousePressed(startTitle);
@@ -143,6 +152,12 @@ function setup() {
       
     });
 
+    socket.on('player2Selected', (chr) => {
+      console.log('player 2 selected '+chr);
+      player2CharacterName = chr;
+      AIEnemy.setCharacter(chr);
+  });
+
     socket.emit('requestAvailableRooms');
 
     
@@ -159,25 +174,13 @@ function joinRoom(){
   socket.emit('room',room);
   date = new Date;
   inRoom=true;
-/*
-let joinRoomButton;
-let refreshButton;
-let roomNameInput;
-let room;
-
-let availableRooms;
-let UIrooms = [];
-*/
   joinRoomButton.hide();
   refreshButton.hide();
   roomNameInput.hide();
   UIrooms.forEach(rm => rm.hide());
-
-
-
-  menuState = 3;//make 2 when character select done
-  //startButton.hide();
-  
+  menuState = 2;//make 2 when character select done
+  loadCharSelect();
+  //startButton.hide(); 
 }
 
 function refreshRooms(){
@@ -203,6 +206,13 @@ function draw() {
       
       break;
     case 2:
+      background(69, 67, 85);
+      if(player2CharacterName != null && playerCharacterName != null){
+        //characterPortraits.push(new CharacterSelectPortrait(characters.characters[i],i));
+        characterPortraits.forEach(pt => pt.hide());
+        menuState = 3; 
+      }
+      //characterPortraits.forEach(char => char.portraitImage.draw());
       break;
     case 3:
       background(0);//161, 211, 247);//(BGImage);
@@ -270,15 +280,7 @@ function draw() {
 function displayPlayer(ply){
     ellipse(ply.x+ca,ply.y,30,30);
 }
-class Player2{
-    constructor(px,py){
-        this.posx = px;
-        this.posy = py;
-    }
-    display(){
-        ellipse(this.posx,this.posy,40,40);
-    }
-}
+
 class AIFighter{
   invincibilityPeriod = false;
   invincibilityTimer = hitInvincibilityPeriod;
@@ -287,35 +289,42 @@ class AIFighter{
     this.posx = px;
     this.posy = py;
     this.sprite = createSprite();
-    this.image = loadImage('Assets/Characters/Stick/idle.gif');
-    this.sprite.addImage(this.image);
-    this.crouchImage = loadImage('Assets/Characters/Stick/crouch.png');
-    this.idleImage = loadImage('Assets/Characters/Stick/idle.gif');
-    this.standingAttackImage = loadImage('Assets/Characters/Stick/standing-attack.png');
-    this.walkImage = loadImage('Assets/Characters/Stick/walk.gif');
-    this.walkBackwardsImage = loadImage('Assets/Characters/Stick/walk-reverse.gif');
-    this.jumpImage = loadImage('Assets/Characters/Stick/jump.png');
+    
   }
+
+  setCharacter(chr){
+    this.crouchImage = loadImage('Assets/Characters/'+chr+'/crouch.png');
+    this.idleImage = loadImage('Assets/Characters/'+chr+'/idle.gif');
+    this.standingAttackImage = loadImage('Assets/Characters/'+chr+'/standing-attack.png');
+    this.walkImage = loadImage('Assets/Characters/'+chr+'/walk.gif');
+    this.walkBackwardsImage = loadImage('Assets/Characters/'+chr+'/walk-reverse.gif');
+    this.jumpImage = loadImage('Assets/Characters/'+chr+'/jump.png');
+    //this.walkImage2 = loadImage('Assets/Placeholder/default-player-walk2.png');
+    this.sprite.addImage(this.idleImage);
+    this.currImage = this.idleImage;
+  }
+
   display(){
+    this.sprite.addImage(this.currImage);
     //console.log(this.state);
     switch(this.state){
         case 0:
-            this.sprite.addImage(this.idleImage);
+          this.currImage = this.idleImage;
             break;
         case 1:
-            this.sprite.addImage(this.standingAttackImage);
+            this.currImage = this.standingAttackImage;
             break;
         case 2:
-            this.sprite.addImage(this.walkImage);
+            this.currImage = this.walkImage;
             break;
         case 3:
-            this.sprite.addImage(this.walkBackwardsImage);
+            this.currImage = this.walkBackwardsImage;
             break;
         case 4:
-            this.sprite.addImage(this.jumpImage);
+            this.currImage = this.jumpImage;
             break;
         case 5:
-            this.sprite.addImage(this.crouchImage);
+            this.currImage = this.crouchImage;
             break;
     }
     //[][][][] VVVVVVVV uncomment
@@ -363,6 +372,7 @@ class PlayerFighter{
 
   state = 0;//idle,attack,forward,back,jump,crouch
 
+
   constructor(px,py,characterName){
     /*var obj = JSON.parse('{ "name":"John", "age":30, "city":"New York"}');
     console.log(obj.name);
@@ -373,16 +383,21 @@ class PlayerFighter{
     this.posx = px;
     this.posy = py;
     this.sprite = createSprite();
-    this.crouchImage = loadImage('Assets/Characters/'+playerCharacterName+'/crouch.png');
-    this.idleImage = loadImage('Assets/Characters/'+playerCharacterName+'/idle.gif');
-    this.standingAttackImage = loadImage('Assets/Characters/'+playerCharacterName+'/standing-attack.png');
-    this.walkImage = loadImage('Assets/Characters/'+playerCharacterName+'/walk.gif');
-    this.walkBackwardsImage = loadImage('Assets/Characters/'+playerCharacterName+'/walk-reverse.gif');
-    this.jumpImage = loadImage('Assets/Characters/'+playerCharacterName+'/jump.png');
-    //this.walkImage2 = loadImage('Assets/Placeholder/default-player-walk2.png');
-    this.sprite.addImage(this.idleImage);
+    
     
   }
+
+  setCharacter(chr){
+    this.crouchImage = loadImage('Assets/Characters/'+chr+'/crouch.png');
+    this.idleImage = loadImage('Assets/Characters/'+chr+'/idle.gif');
+    this.standingAttackImage = loadImage('Assets/Characters/'+chr+'/standing-attack.png');
+    this.walkImage = loadImage('Assets/Characters/'+chr+'/walk.gif');
+    this.walkBackwardsImage = loadImage('Assets/Characters/'+chr+'/walk-reverse.gif');
+    this.jumpImage = loadImage('Assets/Characters/'+chr+'/jump.png');
+    //this.walkImage2 = loadImage('Assets/Placeholder/default-player-walk2.png');
+    this.sprite.addImage(this.idleImage);
+  }
+
   display(){
     //console.log(this.state);
     if(this.posx < -levelWidth/2 + levelCenter){
@@ -411,7 +426,7 @@ class PlayerFighter{
       if(debugModeEnabled){
         ellipse(this.posx + camTargetX+this.hitboxPosition[0], this.posy+this.hitboxPosition[1], 10,10);
       }
-      if(this.posx + this.hitboxPosition[0] > AIEnemy.posx - AIEnemy.image.width){
+      if(this.posx + this.hitboxPosition[0] > AIEnemy.posx - AIEnemy.currImage.width){
         AIEnemy.hurt(1);
       }
       this.frameIndex+= 1;
@@ -559,6 +574,57 @@ class availableRoomUI {
     this.button.hide();
   }
   
+}
+
+function loadCharSelect(){
+  //this.jumpImage = loadImage('Assets/Characters/'+playerCharacterName+'/jump.png');
+  /*
+  for (let i = 0; i < frames.length; i++) {
+    let pos = frames[i].position;
+    let img = spritesheet.get(pos.x, pos.y, pos.w, pos.h);
+    animation.push(img);
+  }
+  */
+  console.log("Loading character selection (length: "+characters.characters[0]+")");
+  characterPortraits = []
+
+ for (let i = 0; i < characters.characters.length; i++){
+   //come up with a spacing algorithm later
+
+   //use characters.characters.length (if root x is whole number: add another column)
+    characterPortraits.push(new CharacterSelectPortrait(characters.characters[i],i));
+    console.log("Loading ("+i+")...");
+ }
+
+}
+
+function selectCharacter(name){
+  playerFighter.setCharacter(name);
+  socket.emit('playerSelected',name);
+  console.log("name: "+name);
+  playerCharacterName = name;
+  //socket.emit('playerSelected',name);//maybe room too
+
+  //Player 1 has selected: (larger portrait on left), 
+  //send message to server with room and character chosen
+  //(above) on recieve callback message from other player set some global var for player2 char to argument
+  //global var is null by default, in draw loop display (none chosen) if null or large portrait using "name"
+}
+
+class CharacterSelectPortrait{
+
+  constructor(character, index){
+    console.log("char:"+character);
+    this.character = character;
+    this.portraitImage = createImg('Assets/Characters/'+character.name+'/portrait.png');
+    this.portraitImage.mousePressed(function() {selectCharacter(character.name);});
+    this.portraitImage.position(30+(index * 65),100);
+    console.log(index);
+    this.portraitImage.size(60,60);
+  }
+  hide(){
+    this.portraitImage.hide();
+  }
 }
 
 

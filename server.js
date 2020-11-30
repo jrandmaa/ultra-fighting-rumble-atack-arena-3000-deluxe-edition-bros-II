@@ -17,6 +17,14 @@ class PlayerClient {
         this.state = state;
     }
 }
+
+/*class Room {
+    constructor(room, player1, player2){
+        this.room=room;
+        this.player1=player1;
+        this.player2=player2;
+    }
+}*/
 /*
 x: playerFighter.posx,
           y:playerFighter.posy,
@@ -29,7 +37,10 @@ x: playerFighter.posx,
           */
 
 let clients = [];
-let rooms = {};
+let rooms = {};//room:numconnected
+
+let clientInfo = {};//id:room
+let clientIDs = {};
 
 
 app.use('/', express.static(__dirname + '/public'));
@@ -43,11 +54,11 @@ function heartbeat(){
 
 io.on('connection', function(socket){
     console.log('client connected, new player id is:' + socket.id);
+    clientIDs[socket.id] = socket;
     /*socket.on('roomEntered', (passWord) => {
 
     });*/
     socket.on('start', (data) => {
-        
         /*const circle = new Circle(socket.id, data.x, data.y, data.size, data.col, data.clicked, data.freq)
         // console.log(data);
         circles.push(circle);*/
@@ -60,13 +71,10 @@ io.on('connection', function(socket){
                 //console.log(client, socket.id);
                 clients[i] = data;
                 hits++;
-                /*if !(clients.room in rooms){
 
-                }*/
                 //console.log(hits, socket.id, data.id);
             }
         });
-        
         //check if never found
 
        /*circles.forEach((circle, i) => {
@@ -96,6 +104,9 @@ io.on('connection', function(socket){
       });
 
     socket.on('room', (room) => {
+        clientInfo[socket.id] = room;
+
+
         console.log('Connecting player to room ID ', room);
         let plClient = new PlayerClient(socket.id,room,300,126,0,0,0,0);
         clients.push(plClient);
@@ -110,6 +121,29 @@ io.on('connection', function(socket){
             rooms[room] = 1;
         }
 
+    });
+
+    socket.on('playerSelected',(name) => {
+        console.log("PLAYER 1 ROOM: " + clientInfo[socket.id]);
+        for(let id in clientInfo){
+            if(clientInfo[id] == clientInfo[socket.id]){
+                if(id != socket.id){
+                    //get socket from id then send player2Selected , name
+                    console.log("PLAYER IDs IN ROOM ("+ clientInfo[id]+"): "+id+", "+socket.id);
+                    clientIDs[id].emit('message',"Other player has selected " + name);
+                    clientIDs[id].emit('player2Selected',name);
+                }
+            }
+            //if id doesnt match: then send
+        }
+        //stopped here: ^^ now use dictionary in global variables search until value = room^
+        //then  if it is
+            //loop through connected until its the one whose room value from dictionary is the same as current room
+
+
+        //can get player id from socket id
+        //find player2 and emit that socket     (emit player 1 pick probably)
+        //!! get player2 from sketch (send player 2 id or socket)
     });
 });
 
