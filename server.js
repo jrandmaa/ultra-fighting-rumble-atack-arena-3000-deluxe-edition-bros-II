@@ -106,6 +106,7 @@ io.on('connection', function(socket){
     socket.on('room', (room) => {
         clientInfo[socket.id] = room;
 
+        //FIND OUT IF PLAYER 1 HAS CHOSEN CHARACTER YET
 
         console.log('Connecting player to room ID ', room);
         let plClient = new PlayerClient(socket.id,room,300,126,0,0,0,0);
@@ -122,6 +123,17 @@ io.on('connection', function(socket){
         }
 
     });
+
+    socket.on('startGame',(room)=> {
+        console.log("Starting game for room "+room);
+        //get everybody in room, send msg
+        for(let id in clientInfo){
+            if(clientInfo[id] == clientInfo[socket.id]){
+                clientIDs[id].emit('startGame');
+            }
+            //if id doesnt match: then send
+        }
+    })
 
     socket.on('playerSelected',(name) => {
         console.log("PLAYER 1 ROOM: " + clientInfo[socket.id]);

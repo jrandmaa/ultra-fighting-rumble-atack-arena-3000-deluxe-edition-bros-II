@@ -19,7 +19,7 @@ let AIEnemy;
 let playerFighter;
 let player2Fighter;
 
-let floorLevel = 125;
+let floorLevel = 105;
 let levelWidth = 1100;
 let levelCenter = 0;
 
@@ -28,7 +28,7 @@ let hitInvincibilityPeriod = 100;
 let playerCharacterName = null;// = "Maurice";
 let player2CharacterName = null;
 
-let debugModeEnabled = true;
+let debugModeEnabled = false;
 
 let players = [];
 let otherPlayers = [];
@@ -59,6 +59,9 @@ let date
 let characterInfo;
 let characters;
 let characterPortraits;
+let player1CharacterLarge;
+let player2CharacterLarge;
+let startGameButton;
 
 /*
 now:
@@ -78,7 +81,7 @@ now:
 function preload(){
   UIFont = loadFont('Assets/Placeholder/SHPinscher-Regular.otf');
   loadJSON('Assets/JSON/characters.json', pullData);
-  BGtext = loadImage('Assets/Textures/tempBG-text-f7.png');
+  BGtext = loadImage('Assets/Textures/tempBG-text-f8.png');
   BGImage = loadImage('Assets/Textures/sky.png');
   mod = loadModel('tempBG2.obj');
   myShader = loadShader('basic.vert', 'basic.frag');
@@ -103,6 +106,16 @@ function setup() {
   canvas = createCanvas(canvasWidth, canvasHeight, WEBGL);
   canvas.drawingContext.imageSmoothingEnabled = false;
   // noStroke();
+
+  //player1CharacterLarge = createSprite();//-300,30,100,200);
+  player1CharacterLarge = (loadImage('Assets/empty.png'));//Characters/Stick/idle.gif'));
+  //player2CharacterLarge = createSprite();//250,30,100,200);
+  player2CharacterLarge = (loadImage('Assets/empty.png'));//Characters/Stick/idle.gif'));
+  player1CharacterLarge.height = 200;
+  player2CharacterLarge.height = 200;
+  //player2CharacterLarge.position = (10,10);
+
+
   startButton = createImg('Assets/UI/START.png');
   startButton.mousePressed(startTitle);
   startButton.center();
@@ -153,9 +166,17 @@ function setup() {
     });
 
     socket.on('player2Selected', (chr) => {
-      console.log('player 2 selected '+chr);
+      player2CharacterLarge=(loadImage('Assets/Characters/'+chr+'/idle.gif'));
+
+      //player2CharacterLarge.position = (250,30);
+      //player2CharacterLarge.height = 200;
       player2CharacterName = chr;
       AIEnemy.setCharacter(chr);
+  });
+
+  socket.on('startGame',function() {
+    console.log("Server force game start...");
+    startGame();
   });
 
     socket.emit('requestAvailableRooms');
@@ -179,8 +200,50 @@ function joinRoom(){
   roomNameInput.hide();
   UIrooms.forEach(rm => rm.hide());
   menuState = 2;//make 2 when character select done
+  if(player2CharacterName != null){
+    player2CharacterLarge=(loadImage('Assets/Characters/'+player2CharacterName+'/idle.gif'));//player2CharacterName
+  }
+  
   loadCharSelect();
-  //startButton.hide(); 
+  
+  startGameButton = createButton('start game');
+  startGameButton.position(canvas.width/2 - 40,canvas.height - 100);
+  startGameButton.mousePressed(function() { socket.emit('startGame', room);});//socket.emit('startGame', room);
+  //startGameButton
+}
+
+function selectCharacter(name){
+  playerFighter.setCharacter(name);
+  socket.emit('playerSelected',name);
+  console.log("name: "+name);
+  playerCharacterName = name;
+  player1CharacterLarge=(loadImage('Assets/Characters/'+name+'/idle.gif'));
+
+  /*player1CharacterLarge.position = (-300,30);
+  player1CharacterLarge.height = 200;*/
+
+  //socket.emit('playerSelected',name);//maybe room too
+
+  //Player 1 has selected: (larger portrait on left), 
+  //send message to server with room and character chosen
+  //(above) on recieve callback message from other player set some global var for player2 char to argument
+  //global var is null by default, in draw loop display (none chosen) if null or large portrait using "name"
+
+  //on bottom: display char/+name+/idle.gif with set height
+  //below that in custom font put their name
+}
+
+function startGame(){
+  console.log(playerCharacterName+"   "+player2CharacterName);
+  if(player2CharacterName != null && playerCharacterName != null){
+    console.log("starting game");
+    characterPortraits.forEach(pt => pt.hide());
+    startGameButton.hide();
+    menuState = 3;
+    
+    //SEND START GAME MESSAGE TO SERVER THEN TO OTHER PLAYER
+  }
+  
 }
 
 function refreshRooms(){
@@ -202,16 +265,26 @@ function draw() {
     case 1:
       background(109, 107, 125);
       UIrooms.forEach(rm => drawRoomText(rm));
-        //UIrooms.push(tempRoom);
+        //add text explaining
       
       break;
     case 2:
-      background(69, 67, 85);
-      if(player2CharacterName != null && playerCharacterName != null){
-        //characterPortraits.push(new CharacterSelectPortrait(characters.characters[i],i));
-        characterPortraits.forEach(pt => pt.hide());
-        menuState = 3; 
-      }
+      //button to start
+      background(69, 67, 85);//HEY. instead of background, try image() first (w skybox) then rendering the next stuff (just replace this line)
+      textFont(UIFont);
+      textSize(20);
+      let p1Posx =  -375 + (player1CharacterLarge.width/2);
+      let p2Posx = 175 + (player2CharacterLarge.width/2);
+      text('Player 1',p1Posx + player1CharacterLarge.width/2,-60);
+      text('Player 2',p2Posx + player2CharacterLarge.width/2,-60);
+      image(player1CharacterLarge, p1Posx,-50,player1CharacterLarge.width*1.75,player1CharacterLarge.height*1.75);
+      image(player2CharacterLarge, p2Posx,-50,player2CharacterLarge.width*1.75,player2CharacterLarge.height*1.75);
+      /*player2CharacterLarge.mirrorX(-1);
+      player2CharacterLarge.position.x = -200;
+      player2CharacterLarge.position.y = 100;//80*/
+      
+      //drawSprites();
+      
       //characterPortraits.forEach(char => char.portraitImage.draw());
       break;
     case 3:
@@ -219,18 +292,27 @@ function draw() {
       camTargetX = -playerFighter.posx;// 300;//-1 *(playerFighter.posx + AIEnemy.posx)/2;
       ambientLight(10,10,10);//xInput.value(),xInput.value(),xInput.value());
       spotLight(235,255,255, camTargetX +258,-315,-145,0,1,0, 100);
+      spotLight(235,255,255, camTargetX +258,-315,-145,0,1,0, 100);
+
+      spotLight(235,255,255, camTargetX -100,-415,-145,0,1,0, 100);
+      spotLight(235,255,255, camTargetX -100,-415,-145,0,1,0, 100);
+      spotLight(235,255,255, camTargetX -100,-415,-145,0,1,0, 100);
+
+
+      //DIRECTIONAL LIGHT DOWN BLUISH AMBIENT FOR MOONLIGHT JUST MAKE BG DARKER IN TEXTURE
+
       //^^ streetlamp
       let spotIntensity = 7;
       //for(i = 0, i < spotIntensity; i += 1){ 
       //}
       //^ this breaks if i use a for loop i guess
       let spotlightOffset = Math.tan(millis() /1000) / 36 ;
+      /*spotLight(255,255,255, camTargetX+ 864,74,48,-50,+ spotlightOffset,0, 100);
       spotLight(255,255,255, camTargetX+ 864,74,48,-50,+ spotlightOffset,0, 100);
       spotLight(255,255,255, camTargetX+ 864,74,48,-50,+ spotlightOffset,0, 100);
       spotLight(255,255,255, camTargetX+ 864,74,48,-50,+ spotlightOffset,0, 100);
       spotLight(255,255,255, camTargetX+ 864,74,48,-50,+ spotlightOffset,0, 100);
-      spotLight(255,255,255, camTargetX+ 864,74,48,-50,+ spotlightOffset,0, 100);
-      spotLight(255,255,255, camTargetX+ 864,74,48,-50,+ spotlightOffset,0, 100);
+      spotLight(255,255,255, camTargetX+ 864,74,48,-50,+ spotlightOffset,0, 100);*/
       directionalLight(120, 120, 120, 0.9,8.7,-13.25);//xInput.value(), yInput.value(), zInput.value());
       //0.55, -3.35, -0.9);
       push();
@@ -243,33 +325,41 @@ function draw() {
       model(mod);
       pop();
       AIEnemy.display();
-      playerFighter.display();
-      //-DELETE ME----
-      connectedClients.forEach(player => {
-          if(player.id != socket.id){
-              //console.log(player.id, "  ", socket.id);
-              AIEnemy.posx = player.x;
-              AIEnemy.posy = player.y;
-              AIEnemy.state = player.state;
-          }
-          //UPDATE position not draw
-          //ellipse(player.x+camTargetX,player.y,30,30);
-        })
-        const data = {
-            x: playerFighter.posx,
-            y:playerFighter.posy,
-            yVelocity: playerFighter.yVelocity,
-            xAirVelocity: playerFighter.xAirVelocity,
-            frameIndex:playerFighter.frameIndex,
-            id:socket.id,
-            state:playerFighter.state,
-            room:room,
-        }
-        socket.emit('update', data);
-        //--------------
+      playerFighter.display();      
+      
     
       break;
   }
+  connectedClients.forEach(player => {
+    if(player.id != socket.id){
+        //console.log(player.character+"   "+player2CharacterName);
+        //console.log(player.id, "  ", socket.id);
+        if(player2CharacterName != player.character){
+          player2CharacterName = player.character;
+          player2CharacterLarge=(loadImage('Assets/Characters/'+player2CharacterName+'/idle.gif'));
+          AIEnemy.setCharacter(player2CharacterName);
+        }
+        
+        AIEnemy.posx = player.x;
+        AIEnemy.posy = player.y;
+        AIEnemy.state = player.state;
+    }
+    //UPDATE position not draw
+    //ellipse(player.x+camTargetX,player.y,30,30);
+  })
+  const data = {
+      x: playerFighter.posx,
+      y:playerFighter.posy,
+      yVelocity: playerFighter.yVelocity,
+      xAirVelocity: playerFighter.xAirVelocity,
+      frameIndex:playerFighter.frameIndex,
+      id:socket.id,
+      state:playerFighter.state,
+      room:room,
+      character:playerCharacterName,
+  }
+  socket.emit('update', data);
+  
    /*else {
     //mainmenu
     background(0);
@@ -306,6 +396,12 @@ class AIFighter{
 
   display(){
     this.sprite.addImage(this.currImage);
+    if(this.posx > playerFighter.posx){
+      this.sprite.mirrorX(-1);
+    } else {
+      this.sprite.mirrorX(1);
+    }
+    
     //console.log(this.state);
     switch(this.state){
         case 0:
@@ -399,6 +495,11 @@ class PlayerFighter{
   }
 
   display(){
+    if(this.posx > AIEnemy.posx){
+      this.sprite.mirrorX(-1);
+    } else {
+      this.sprite.mirrorX(1);
+    }
     //console.log(this.state);
     if(this.posx < -levelWidth/2 + levelCenter){
       this.posx = -levelWidth/2 + levelCenter;
@@ -563,9 +664,9 @@ class availableRoomUI {
   constructor(room,index,numPlayers){//and # players?
     this.numPlayers = numPlayers;
     this.roomName = room;
-    this.button = createButton(room);//createImg('Assets/Placeholder/UIBox.png');//createButton(room + '__________________________Players: ' + numPlayers);//+ '     ' + numPlayers);
+    this.button = createButton(room + "---------------|---------------"+numPlayers+" in room");//createImg('Assets/Placeholder/UIBox.png');//createButton(room + '__________________________Players: ' + numPlayers);//+ '     ' + numPlayers);
     this.button.size(this.bWidth,this.bHeight);
-    this.posx = canvasWidth/2 - this.bWidth/2;
+    this.posx = canvas.width/2 - this.bWidth/2;
     this.posy = this.topMargin+(index*this.bHeight);
     this.button.position(this.posx, this.posy);
     this.button.mousePressed(function() { roomNameInput.value(room);});//roomNameInput
@@ -598,19 +699,6 @@ function loadCharSelect(){
 
 }
 
-function selectCharacter(name){
-  playerFighter.setCharacter(name);
-  socket.emit('playerSelected',name);
-  console.log("name: "+name);
-  playerCharacterName = name;
-  //socket.emit('playerSelected',name);//maybe room too
-
-  //Player 1 has selected: (larger portrait on left), 
-  //send message to server with room and character chosen
-  //(above) on recieve callback message from other player set some global var for player2 char to argument
-  //global var is null by default, in draw loop display (none chosen) if null or large portrait using "name"
-}
-
 class CharacterSelectPortrait{
 
   constructor(character, index){
@@ -618,7 +706,7 @@ class CharacterSelectPortrait{
     this.character = character;
     this.portraitImage = createImg('Assets/Characters/'+character.name+'/portrait.png');
     this.portraitImage.mousePressed(function() {selectCharacter(character.name);});
-    this.portraitImage.position(30+(index * 65),100);
+    this.portraitImage.position((canvas.width/2 - (65))+(index * 65),100);//canvas.width/2 - (totalCharacters/2 * 65) for x
     console.log(index);
     this.portraitImage.size(60,60);
   }
