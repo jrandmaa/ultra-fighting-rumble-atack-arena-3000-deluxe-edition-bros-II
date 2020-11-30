@@ -91,7 +91,6 @@ io.on('connection', function(socket){
     });
 
     socket.on('requestAvailableRooms', function() {
-        console.log('current clients', clients);//<--- outputs incorrectly
         availableRooms = getRooms();
         //vvvv used to be availableRooms
         socket.emit('updateRooms', rooms);
@@ -99,6 +98,21 @@ io.on('connection', function(socket){
 
     socket.on('disconnect', function() {
         //GET ROOM FROM ID, AND DECREMENT ROOM VAL HERE [][][]
+        rooms[clientInfo[socket.id]] = rooms[clientInfo[socket.id]] - 1;
+        if(rooms[clientInfo[socket.id]] != 1){
+            delete rooms[clientInfo[socket.id]];
+        }
+        //let rooms = {};//room:numconnected
+        //let clientInfo = {};//id:room
+        
+        //for all rooms if 0 or null connected delete from memory
+        /*for(let rm in rooms){
+            if (rooms[rm] == 0){
+                delete rooms[rm];
+                availableRooms = getRooms();
+                socket.emit('updateRooms', rooms);
+            }
+        }*/
 
         console.log("Client has disconnected");
       });
@@ -136,7 +150,6 @@ io.on('connection', function(socket){
     })
 
     socket.on('playerSelected',(name) => {
-        console.log("PLAYER 1 ROOM: " + clientInfo[socket.id]);
         for(let id in clientInfo){
             if(clientInfo[id] == clientInfo[socket.id]){
                 if(id != socket.id){
@@ -163,9 +176,13 @@ function getRooms(){
     availableRooms = [];
 
     clients.forEach((client,i) => {
-        console.log("room: ",client.room);
-        if(!availableRooms.includes(client.room)){
-            availableRooms.push(client.room);
+        //console.log("room: ",client.room);
+        if(rooms[client.room] == 1){
+            if(!availableRooms.includes(client.room)){
+                
+                availableRooms.push(client.room);
+            }
+            
         } //**** ELSE: REMOVE FROM LIST - ROOM FULL */
         
     });
