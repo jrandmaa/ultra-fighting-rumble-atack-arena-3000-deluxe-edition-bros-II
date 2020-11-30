@@ -275,6 +275,11 @@ function draw() {
       //button to start
       background(69, 67, 85);//HEY. instead of background, try image() first (w skybox) then rendering the next stuff (just replace this line)
       textFont(UIFont);
+      if(playerCharacterName != null && player2CharacterName != null){
+        startGameButton.position(canvas.width/2 - 40,canvas.height - 100);
+      } else {
+        startGameButton.position(canvas.width+300,canvas.height + 300);
+      }
       textSize(20);
       let p1Posx =  -375 + (player1CharacterLarge.width/2);
       let p2Posx = 175 + (player2CharacterLarge.width/2);
