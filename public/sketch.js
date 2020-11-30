@@ -118,7 +118,7 @@ function setup() {
 
   startButton = createImg('Assets/UI/START.png');
   startButton.mousePressed(startTitle);
-  startButton.center();
+  startButton.position(canvas.width/2 - 50,canvas.height*3/4)
   AIEnemy = new AIFighter(300,floorLevel);//BELOW - used to be -300
   playerFighter = new PlayerFighter(-Math.floor(Math.random() * 300) - 1,floorLevel,"Stick");
 
