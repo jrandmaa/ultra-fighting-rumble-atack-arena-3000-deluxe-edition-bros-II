@@ -265,6 +265,9 @@ function draw() {
     case 1:
       background(109, 107, 125);
       UIrooms.forEach(rm => drawRoomText(rm));
+      textFont(UIFont);
+      textSize(20);
+      text('Join an existing room or create a new one.',-180, 190);
         //add text explaining
       
       break;
