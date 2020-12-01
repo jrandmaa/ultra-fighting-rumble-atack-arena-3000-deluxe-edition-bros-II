@@ -170,7 +170,22 @@ io.on('connection', function(socket){
         //find player2 and emit that socket     (emit player 1 pick probably)
         //!! get player2 from sketch (send player 2 id or socket)
     });
+
+    socket.on('hurtEnemy', (dmg) => {
+        //getOtherPlayer(socket).emit('message', "you got punched dude");
+        getOtherPlayer(socket).emit('hurtPlayer',dmg);
+    });
 });
+
+function getOtherPlayer(sock){
+    for(let id in clientInfo){
+        if(clientInfo[id] == clientInfo[sock.id]){
+            if(id != sock.id){
+                return clientIDs[id];
+            }
+        }
+    }
+}
 
 function getRooms(){
     availableRooms = [];

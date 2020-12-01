@@ -23,7 +23,7 @@ let floorLevel = 105;
 let levelWidth = 1100;
 let levelCenter = 0;
 
-let hitInvincibilityPeriod = 100;
+let hitInvincibilityPeriod = 30;
 
 let playerCharacterName = null;// = "Maurice";
 let player2CharacterName = null;
@@ -62,6 +62,10 @@ let characterPortraits;
 let player1CharacterLarge;
 let player2CharacterLarge;
 let startGameButton;
+let restartButton;
+let winDisplayTimer = 0;
+
+
 
 /*
 now:
@@ -107,14 +111,10 @@ function setup() {
   canvas.drawingContext.imageSmoothingEnabled = false;
   // noStroke();
 
-  //player1CharacterLarge = createSprite();//-300,30,100,200);
   player1CharacterLarge = (loadImage('Assets/empty.png'));//Characters/Stick/idle.gif'));
-  //player2CharacterLarge = createSprite();//250,30,100,200);
   player2CharacterLarge = (loadImage('Assets/empty.png'));//Characters/Stick/idle.gif'));
   player1CharacterLarge.height = 200;
   player2CharacterLarge.height = 200;
-  //player2CharacterLarge.position = (10,10);
-
 
   startButton = createImg('Assets/UI/START.png');
   startButton.mousePressed(startTitle);
@@ -126,12 +126,10 @@ function setup() {
    gradient.noStroke();
    gradient.push();
    gradient.translate(-200, -200, 0);
-  //  gradient.image(img, 0 , 0, 400, 400);
    gradient.shader(myShader);
    gradient.rect(0,0,width, height);
    gradient.pop();
    //-----socket shit-------
-
 
   socket.on('heartbeat', (data) => {
     //console.log(data);
@@ -179,12 +177,11 @@ function setup() {
     startGame();
   });
 
-    socket.emit('requestAvailableRooms');
+  socket.on('hurtPlayer', (dmg) => {
+    playerFighter.hurt(dmg);
+  });
 
-    
-    /*startButton = createButton('start');
-    startButton.position(300, 300);
-    startButton.mousePressed(joinRoom);*/
+    socket.emit('requestAvailableRooms');
 
     //SOCKET: EMIT createRoom !!!!!!!
     frameRate(100);
@@ -239,11 +236,12 @@ function startGame(){
     console.log("starting game");
     characterPortraits.forEach(pt => pt.hide());
     startGameButton.hide();
-    menuState = 3;
-    
+    health = 100;
+    AIEnemy.health = 100;
+    menuState = 3; 
+    winDisplayTimer = 0;
     //SEND START GAME MESSAGE TO SERVER THEN TO OTHER PLAYER
   }
-  
 }
 
 function refreshRooms(){
@@ -252,6 +250,7 @@ function refreshRooms(){
 }
 
 function draw() {
+   
   //console.log(connectedClients);
     socket.on('start', (data) => {
         console.log('player connected, id: ', data.id);
@@ -267,13 +266,11 @@ function draw() {
       UIrooms.forEach(rm => drawRoomText(rm));
       textFont(UIFont);
       textSize(20);
-      text('Join an existing room or create a new one.',-180, 190);
-        //add text explaining
-      
+      text('Join an existing room or create a new one.',-180, 190);      
       break;
     case 2:
       //button to start
-      background(69, 67, 85);//HEY. instead of background, try image() first (w skybox) then rendering the next stuff (just replace this line)
+      background(69, 67, 85);
       textFont(UIFont);
       if(playerCharacterName != null && player2CharacterName != null){
         startGameButton.position(canvas.width/2 - 40,canvas.height - 100);
@@ -287,25 +284,39 @@ function draw() {
       text('Player 2',p2Posx + player2CharacterLarge.width/2,-60);
       image(player1CharacterLarge, p1Posx,-50,player1CharacterLarge.width*1.75,player1CharacterLarge.height*1.75);
       image(player2CharacterLarge, p2Posx,-50,player2CharacterLarge.width*1.75,player2CharacterLarge.height*1.75);
-      /*player2CharacterLarge.mirrorX(-1);
-      player2CharacterLarge.position.x = -200;
-      player2CharacterLarge.position.y = 100;//80*/
-      
-      //drawSprites();
-      
       //characterPortraits.forEach(char => char.portraitImage.draw());
       break;
     case 3:
+      if(health <= 0){
+        textFont(UIFont);
+        textSize(45);
+        text('Player 2 wins!',-canvas.width/4 + 75, -100);   
+        winDisplayTimer +=1;
+      } else if (AIEnemy.health <= 0){
+        //display you lose whatever
+        //button that emits join game message (from when pressing button in char select)
+        textFont(UIFont);
+        textSize(45);
+        text('Player 1 wins!',-canvas.width/4 + 75, -100);   //use camerapos
+        winDisplayTimer +=1;
+      }
+      if(winDisplayTimer > 1000){
+        winDisplayTimer = 0;
+        socket.emit('startGame', room);
+      }
       background(0);//161, 211, 247);//(BGImage);
+      var hpGradientColor2 = color(66, 245, 138);
+      var hpGradientColor1 = color(29, 140, 74);
+      setGradient(-350,-canvas.height/3 - 50,canvas.width/2.5  * (playerFighter.health/100),15,hpGradientColor1,hpGradientColor2,"X");
+      setGradient(50 + canvas.width/2.5 * (1/AIEnemy.health/100),-canvas.height/3 - 50,canvas.width/2.5 * (AIEnemy.health/100),15,hpGradientColor2,hpGradientColor1,"X");
+  
       camTargetX = -playerFighter.posx;// 300;//-1 *(playerFighter.posx + AIEnemy.posx)/2;
       ambientLight(10,10,10);//xInput.value(),xInput.value(),xInput.value());
       spotLight(235,255,255, camTargetX +258,-315,-145,0,1,0, 100);
       spotLight(235,255,255, camTargetX +258,-315,-145,0,1,0, 100);
-
       spotLight(235,255,255, camTargetX -100,-415,-145,0,1,0, 100);
       spotLight(235,255,255, camTargetX -100,-415,-145,0,1,0, 100);
       spotLight(235,255,255, camTargetX -100,-415,-145,0,1,0, 100);
-
 
       //DIRECTIONAL LIGHT DOWN BLUISH AMBIENT FOR MOONLIGHT JUST MAKE BG DARKER IN TEXTURE
 
@@ -329,13 +340,13 @@ function draw() {
       rotateY(PI/2);
       scale(2.5);
       noStroke();
+      //image(BGImage,0,0,canvas.width,canvas.height);
       texture(BGtext);
       model(mod);
       pop();
       AIEnemy.display();
-      playerFighter.display();      
+      playerFighter.display();
       
-    
       break;
   }
   connectedClients.forEach(player => {
@@ -366,12 +377,7 @@ function draw() {
       room:room,
       character:playerCharacterName,
   }
-  socket.emit('update', data);
-  
-   /*else {
-    //mainmenu
-    background(0);
-  }*/
+  socket.emit('update', data);  
   //move shit to different files so i dont have 800 lines again************************
 }
 
@@ -383,17 +389,18 @@ class AIFighter{
   invincibilityPeriod = false;
   invincibilityTimer = hitInvincibilityPeriod;
   state=0;//idle,attack,forward,back,jump,crouch
+  health=100;
   constructor(px,py){
     this.posx = px;
     this.posy = py;
     this.sprite = createSprite();
-    
   }
 
   setCharacter(chr){
     this.crouchImage = loadImage('Assets/Characters/'+chr+'/crouch.png');
     this.idleImage = loadImage('Assets/Characters/'+chr+'/idle.gif');
     this.standingAttackImage = loadImage('Assets/Characters/'+chr+'/standing-attack.png');
+    this.jumpAttack = loadImage('Assets/Characters/'+chr+'/jump-attack.png');
     this.walkImage = loadImage('Assets/Characters/'+chr+'/walk.gif');
     this.walkBackwardsImage = loadImage('Assets/Characters/'+chr+'/walk-reverse.gif');
     this.jumpImage = loadImage('Assets/Characters/'+chr+'/jump.png');
@@ -431,10 +438,6 @@ class AIFighter{
             this.currImage = this.crouchImage;
             break;
     }
-    //[][][][] VVVVVVVV uncomment
-    //this.sprite.mirrorX(-1);
-
-
     if(this.invincibilityPeriod){
       if(this.invincibilityTimer % 5 == 0){
         this.sprite.visible = !this.sprite.visible;
@@ -454,7 +457,9 @@ class AIFighter{
   }
   hurt(dmg){
     if(!this.invincibilityPeriod){
+      console.log(this.health+"    "+AIEnemy.health);
       //this.posy += 1;
+      this.health -= dmg;
       this.invincibilityPeriod = true;
     }
     
@@ -462,6 +467,11 @@ class AIFighter{
 }
 
 class PlayerFighter{
+  jumpingAttack = false;
+
+  invincibilityPeriod = false;
+  invincibilityTimer = hitInvincibilityPeriod;
+
   frameIndex = 0;
   frameLimit = 15;
 
@@ -476,25 +486,27 @@ class PlayerFighter{
 
   state = 0;//idle,attack,forward,back,jump,crouch
 
+  health = 100;//maybe get health from json later
 
+  attackIndex = 0;
   constructor(px,py,characterName){
     /*var obj = JSON.parse('{ "name":"John", "age":30, "city":"New York"}');
     console.log(obj.name);
     let requestURL = 'Assets/Characters/Stick/Stick.json';*/
     
-    
     //[][][][][][][][][][][][][][][][][][][][][][][][][][][][][][]
     this.posx = px;
     this.posy = py;
     this.sprite = createSprite();
-    
-    
   }
 
   setCharacter(chr){
     this.crouchImage = loadImage('Assets/Characters/'+chr+'/crouch.png');
     this.idleImage = loadImage('Assets/Characters/'+chr+'/idle.gif');
     this.standingAttackImage = loadImage('Assets/Characters/'+chr+'/standing-attack.png');
+    this.attackImage1 = loadImage('Assets/Characters/'+chr+'/standing-attack1.png');
+    this.attackImage2 = loadImage('Assets/Characters/'+chr+'/standing-attack2.png');
+    this.jumpAttackImage = loadImage('Assets/Characters/'+chr+'/jump-attack.png');
     this.walkImage = loadImage('Assets/Characters/'+chr+'/walk.gif');
     this.walkBackwardsImage = loadImage('Assets/Characters/'+chr+'/walk-reverse.gif');
     this.jumpImage = loadImage('Assets/Characters/'+chr+'/jump.png');
@@ -503,6 +515,7 @@ class PlayerFighter{
   }
 
   display(){
+    
     if(this.posx > AIEnemy.posx){
       this.sprite.mirrorX(-1);
     } else {
@@ -522,11 +535,17 @@ class PlayerFighter{
     //if not on ground: 
 
     if(this.posy < floorLevel){
-      this.sprite.addImage(this.jumpImage);
+      if(this.jumpingAttack){
+        this.sprite.addImage(this.jumpAttackImage);
+      } else {
+        this.sprite.addImage(this.jumpImage);
+      }
+      
       this.state = 4;
       this.posy -= this.yVelocity;
       this.yVelocity -= this.dampening;
     } else {
+      this.jumpingAttack = false;
       this.posy = floorLevel;
       this.yVelocity = 0;
     }
@@ -536,10 +555,15 @@ class PlayerFighter{
         ellipse(this.posx + camTargetX+this.hitboxPosition[0], this.posy+this.hitboxPosition[1], 10,10);
       }
       if(this.posx + this.hitboxPosition[0] > AIEnemy.posx - AIEnemy.currImage.width){
-        AIEnemy.hurt(1);
+        if(!AIEnemy.invincibilityPeriod){
+          let attackdmg = 7;
+          AIEnemy.hurt(attackdmg);
+          socket.emit('hurtEnemy',attackdmg);
+        }
+        
       }
       this.frameIndex+= 1;
-      if(this.frameIndex > 30 && !(keyIsDown(DOWN_ARROW))){
+      if(this.frameIndex > 10 && !(keyIsDown(DOWN_ARROW))){
         this.frameIndex = 0;
         this.sprite.addImage(this.idleImage);
       }
@@ -574,11 +598,33 @@ class PlayerFighter{
       this.sprite.addImage(this.crouchImage);
       this.state = 5;
     }
+
+    if(this.invincibilityPeriod){
+      if(this.invincibilityTimer % 5 == 0){
+        this.sprite.visible = !this.sprite.visible;
+      }
+      
+      this.invincibilityTimer -=1;
+      if(this.invincibilityTimer <= 0){
+        this.invincibilityTimer = hitInvincibilityPeriod;
+        this.invincibilityPeriod = false;
+        this.sprite.visible = true;
+      }
+    }
   }
 
   attack(){
     this.frameIndex = 1;
-    this.sprite.addImage(this.standingAttackImage);
+    //change image to other one
+    this.attackIndex+=1;
+    if(this.posy < floorLevel){
+      this.jumpingAttack = true;//this.sprite.addImage(this.jumpAttackImage);
+    } else if(this.attackIndex % 2 == 0){
+      this.sprite.addImage(this.attackImage2);
+    } else {
+      this.sprite.addImage(this.attackImage1);
+    }
+    
     this.state = 1;
   }
   idle(){
@@ -608,6 +654,12 @@ class PlayerFighter{
       this.yVelocity = this.jumpPower;
       this.sprite.addImage(this.jumpImage);
       this.posy -= this.yVelocity;
+    }
+  }
+  hurt(dmg){
+    if(!this.invincibilityPeriod){
+      this.health -= dmg;
+      this.invincibilityPeriod = true;
     }
   }
 }
@@ -686,14 +738,6 @@ class availableRoomUI {
 }
 
 function loadCharSelect(){
-  //this.jumpImage = loadImage('Assets/Characters/'+playerCharacterName+'/jump.png');
-  /*
-  for (let i = 0; i < frames.length; i++) {
-    let pos = frames[i].position;
-    let img = spritesheet.get(pos.x, pos.y, pos.w, pos.h);
-    animation.push(img);
-  }
-  */
   console.log("Loading character selection (length: "+characters.characters[0]+")");
   characterPortraits = []
 
@@ -704,7 +748,6 @@ function loadCharSelect(){
     characterPortraits.push(new CharacterSelectPortrait(characters.characters[i],i));
     console.log("Loading ("+i+")...");
  }
-
 }
 
 class CharacterSelectPortrait{
@@ -722,5 +765,27 @@ class CharacterSelectPortrait{
     this.portraitImage.hide();
   }
 }
+
+//-----------------------FROM p5.js documentation-----------------------//
+function setGradient(x, y, w, h, c1, c2, axis) {
+  noFill();
+  if (axis == "Y") {  // Top to bottom gradient
+    for (let i = y; i <= y+h; i++) {
+      var inter = map(i, y, y+h, 0, 1);
+      var c = lerpColor(c1, c2, inter);
+      stroke(c);
+      line(x, i, x+w, i);
+    }
+  }  
+  else if (axis == "X") {  // Left to right gradient
+    for (let j = x; j <= x+w; j++) {
+      var inter2 = map(j, x, x+w, 0, 1);
+      var d = lerpColor(c1, c2, inter2);
+      stroke(d);
+      line(j, y, j, y+h);
+    }
+  }
+}
+//-------------------------------------------------------------------//
 
 
