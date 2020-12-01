@@ -404,6 +404,8 @@ class AIFighter{
     this.walkImage = loadImage('Assets/Characters/'+chr+'/walk.gif');
     this.walkBackwardsImage = loadImage('Assets/Characters/'+chr+'/walk-reverse.gif');
     this.jumpImage = loadImage('Assets/Characters/'+chr+'/jump.png');
+    this.attackImage1 = loadImage('Assets/Characters/'+chr+'/standing-attack1.png');
+    this.attackImage2 = loadImage('Assets/Characters/'+chr+'/standing-attack2.png');
     //this.walkImage2 = loadImage('Assets/Placeholder/default-player-walk2.png');
     this.sprite.addImage(this.idleImage);
     this.currImage = this.idleImage;
@@ -437,6 +439,15 @@ class AIFighter{
         case 5:
             this.currImage = this.crouchImage;
             break;
+        case 6:
+          this.currImage = this.jumpAttack;
+          break;
+        case 7:
+          this.currImage = this.attackImage1;
+          break;
+        case 8:
+          this.currImage = this.attackImage2;
+          break;
     }
     if(this.invincibilityPeriod){
       if(this.invincibilityTimer % 5 == 0){
@@ -484,7 +495,7 @@ class PlayerFighter{
   hitboxPositions = [70,-10,55,55];//OUTDATED
   hitboxPosition = [70,-10];
 
-  state = 0;//idle,attack,forward,back,jump,crouch
+  state = 0;//idle,attack,forward,back,jump,crouch,jattack,jab1,jab2
 
   health = 100;//maybe get health from json later
 
@@ -611,6 +622,9 @@ class PlayerFighter{
         this.sprite.visible = true;
       }
     }
+    if(this.jumpingAttack){
+      this.state=6;
+    }
   }
 
   attack(){
@@ -621,11 +635,13 @@ class PlayerFighter{
       this.jumpingAttack = true;//this.sprite.addImage(this.jumpAttackImage);
     } else if(this.attackIndex % 2 == 0){
       this.sprite.addImage(this.attackImage2);
+      this.state=7;
     } else {
       this.sprite.addImage(this.attackImage1);
+      this.state=8;
     }
     
-    this.state = 1;
+    //this.state = 1;
   }
   idle(){
     this.sprite.addImage(this.idleImage);

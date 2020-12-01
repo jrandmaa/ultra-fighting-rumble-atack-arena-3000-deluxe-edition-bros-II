@@ -46,7 +46,7 @@ let clientIDs = {};
 app.use('/', express.static(__dirname + '/public'));
 // app.use('/mobile', express.static(__dirname + '/public/mobile'));
 
-setInterval(heartbeat, 3);//was 33
+setInterval(heartbeat, 1);//was 33
 
 function heartbeat(){
     io.sockets.emit('heartbeat', clients);
