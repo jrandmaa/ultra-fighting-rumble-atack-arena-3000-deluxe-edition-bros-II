@@ -287,7 +287,7 @@ function draw() {
       //characterPortraits.forEach(char => char.portraitImage.draw());
       break;
     case 3:
-      if(health <= 0){
+      /*if(health <= 0){
         textFont(UIFont);
         textSize(45);
         text('Player 2 wins!',-canvas.width/4 + 75, -100);   
@@ -299,7 +299,7 @@ function draw() {
         textSize(45);
         text('Player 1 wins!',-canvas.width/4 + 75, -100);   //use camerapos
         winDisplayTimer +=1;
-      }
+      }*/
       if(winDisplayTimer > 1000){
         winDisplayTimer = 0;
         socket.emit('startGame', room);
@@ -307,8 +307,8 @@ function draw() {
       background(0);//161, 211, 247);//(BGImage);
       var hpGradientColor2 = color(66, 245, 138);
       var hpGradientColor1 = color(29, 140, 74);
-      setGradient(-350,-canvas.height/3 - 50,canvas.width/2.5  * (playerFighter.health/100),15,hpGradientColor1,hpGradientColor2,"X");
-      setGradient(50 + canvas.width/2.5 * (1/AIEnemy.health/100),-canvas.height/3 - 50,canvas.width/2.5 * (AIEnemy.health/100),15,hpGradientColor2,hpGradientColor1,"X");
+      /*setGradient(-350,-canvas.height/3 - 50,canvas.width/2.5  * (playerFighter.health/100),15,hpGradientColor1,hpGradientColor2,"X");
+      setGradient(50 + canvas.width/2.5 * (1/AIEnemy.health/100),-canvas.height/3 - 50,canvas.width/2.5 * (AIEnemy.health/100),15,hpGradientColor2,hpGradientColor1,"X");*/
   
       camTargetX = -playerFighter.posx;// 300;//-1 *(playerFighter.posx + AIEnemy.posx)/2;
       ambientLight(10,10,10);//xInput.value(),xInput.value(),xInput.value());
@@ -406,6 +406,7 @@ class AIFighter{
     this.jumpImage = loadImage('Assets/Characters/'+chr+'/jump.png');
     this.attackImage1 = loadImage('Assets/Characters/'+chr+'/standing-attack1.png');
     this.attackImage2 = loadImage('Assets/Characters/'+chr+'/standing-attack2.png');
+    this.flinchImage = loadImage('Assets/Characters/'+chr+'/flinch.png');
     //this.walkImage2 = loadImage('Assets/Placeholder/default-player-walk2.png');
     this.sprite.addImage(this.idleImage);
     this.currImage = this.idleImage;
@@ -448,6 +449,9 @@ class AIFighter{
         case 8:
           this.currImage = this.attackImage2;
           break;
+        case 9:
+          this.currImage = this.flinchImage;
+          break;
     }
     if(this.invincibilityPeriod){
       if(this.invincibilityTimer % 5 == 0){
@@ -480,6 +484,7 @@ class AIFighter{
 class PlayerFighter{
   jumpingAttack = false;
 
+
   invincibilityPeriod = false;
   invincibilityTimer = hitInvincibilityPeriod;
 
@@ -495,7 +500,7 @@ class PlayerFighter{
   hitboxPositions = [70,-10,55,55];//OUTDATED
   hitboxPosition = [70,-10];
 
-  state = 0;//idle,attack,forward,back,jump,crouch,jattack,jab1,jab2
+  state = 0;//idle,attack,forward,back,jump,crouch,jattack,jab1,jab2,stun
 
   health = 100;//maybe get health from json later
 
@@ -521,15 +526,23 @@ class PlayerFighter{
     this.walkImage = loadImage('Assets/Characters/'+chr+'/walk.gif');
     this.walkBackwardsImage = loadImage('Assets/Characters/'+chr+'/walk-reverse.gif');
     this.jumpImage = loadImage('Assets/Characters/'+chr+'/jump.png');
+    this.flinchImage = loadImage('Assets/Characters/'+chr+'/flinch.png');
     //this.walkImage2 = loadImage('Assets/Placeholder/default-player-walk2.png');
     this.sprite.addImage(this.idleImage);
   }
 
   display(){
     
+    
     if(this.posx > AIEnemy.posx){
+      if(this.invincibilityPeriod){
+        this.posx +=1;
+      }
       this.sprite.mirrorX(-1);
     } else {
+      if(this.invincibilityPeriod){
+        this.posx -=1;
+      }
       this.sprite.mirrorX(1);
     }
     //console.log(this.state);
@@ -624,6 +637,9 @@ class PlayerFighter{
     }
     if(this.jumpingAttack){
       this.state=6;
+    }
+    if(this.invincibilityPeriod){
+      this.state = 9;
     }
   }
 
