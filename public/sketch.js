@@ -65,7 +65,7 @@ let startGameButton;
 let restartButton;
 let winDisplayTimer = 0;
 
-
+let comboTimeMax=30;
 
 /*
 now:
@@ -180,6 +180,12 @@ function setup() {
   socket.on('hurtPlayer', (dmg) => {
     playerFighter.hurt(dmg);
   });
+
+  socket.on('launchPlayer', (dmg) => {
+    playerFighter.toss(dmg);
+  });
+
+  
 
     socket.emit('requestAvailableRooms');
 
@@ -407,6 +413,7 @@ class AIFighter{
     this.attackImage1 = loadImage('Assets/Characters/'+chr+'/standing-attack1.png');
     this.attackImage2 = loadImage('Assets/Characters/'+chr+'/standing-attack2.png');
     this.flinchImage = loadImage('Assets/Characters/'+chr+'/flinch.png');
+    this.tossImage = loadImage('Assets/Characters/'+chr+'/toss.png');
     //this.walkImage2 = loadImage('Assets/Placeholder/default-player-walk2.png');
     this.sprite.addImage(this.idleImage);
     this.currImage = this.idleImage;
@@ -452,6 +459,9 @@ class AIFighter{
         case 9:
           this.currImage = this.flinchImage;
           break;
+        case 10:
+          this.currImage = this.tossImage;
+          break;
     }
     if(this.invincibilityPeriod){
       if(this.invincibilityTimer % 5 == 0){
@@ -472,7 +482,7 @@ class AIFighter{
   }
   hurt(dmg){
     if(!this.invincibilityPeriod){
-      console.log(this.health+"    "+AIEnemy.health);
+      //console.log(this.health+"    "+AIEnemy.health);
       //this.posy += 1;
       this.health -= dmg;
       this.invincibilityPeriod = true;
@@ -484,6 +494,9 @@ class AIFighter{
 class PlayerFighter{
   jumpingAttack = false;
 
+  currentCombo = 0;
+  comboTimer = comboTimeMax;
+  tossed=false;
 
   invincibilityPeriod = false;
   invincibilityTimer = hitInvincibilityPeriod;
@@ -500,7 +513,7 @@ class PlayerFighter{
   hitboxPositions = [70,-10,55,55];//OUTDATED
   hitboxPosition = [70,-10];
 
-  state = 0;//idle,attack,forward,back,jump,crouch,jattack,jab1,jab2,stun
+  state = 0;//idle,attack,forward,back,jump,crouch,jattack,jab1,jab2,stun,toss
 
   health = 100;//maybe get health from json later
 
@@ -527,13 +540,17 @@ class PlayerFighter{
     this.walkBackwardsImage = loadImage('Assets/Characters/'+chr+'/walk-reverse.gif');
     this.jumpImage = loadImage('Assets/Characters/'+chr+'/jump.png');
     this.flinchImage = loadImage('Assets/Characters/'+chr+'/flinch.png');
+    this.tossImage = loadImage('Assets/Characters/'+chr+'/toss.png');
     //this.walkImage2 = loadImage('Assets/Placeholder/default-player-walk2.png');
     this.sprite.addImage(this.idleImage);
   }
 
   display(){
-    
-    
+    if(this.comboTimer <= 0){
+      this.currentCombo = 0;
+    } else {
+      this.comboTimer -= 1;
+    }
     if(this.posx > AIEnemy.posx){
       if(this.invincibilityPeriod){
         this.posx +=1;
@@ -545,35 +562,11 @@ class PlayerFighter{
       }
       this.sprite.mirrorX(1);
     }
-    //console.log(this.state);
     if(this.posx < -levelWidth/2 + levelCenter){
       this.posx = -levelWidth/2 + levelCenter;
     } else if(this.posx > levelWidth/2 + levelCenter){
       this.posx = levelWidth/2 + levelCenter;
-    }/* else if (this.posx > AIEnemy.posx - AIEnemy.image.width){
-      this.posx = AIEnemy.posx - AIEnemy.image.width;
-    }*/
-
-    //^^^^^ UNCOMMENT
-
-    //if not on ground: 
-
-    if(this.posy < floorLevel){
-      if(this.jumpingAttack){
-        this.sprite.addImage(this.jumpAttackImage);
-      } else {
-        this.sprite.addImage(this.jumpImage);
-      }
-      
-      this.state = 4;
-      this.posy -= this.yVelocity;
-      this.yVelocity -= this.dampening;
-    } else {
-      this.jumpingAttack = false;
-      this.posy = floorLevel;
-      this.yVelocity = 0;
     }
-    //console.log(this.posy);
     if(this.frameIndex > 0){
       if(debugModeEnabled){
         ellipse(this.posx + camTargetX+this.hitboxPosition[0], this.posy+this.hitboxPosition[1], 10,10);
@@ -581,10 +574,17 @@ class PlayerFighter{
       if(this.posx + this.hitboxPosition[0] > AIEnemy.posx - AIEnemy.currImage.width){
         if(!AIEnemy.invincibilityPeriod){
           let attackdmg = 7;
-          AIEnemy.hurt(attackdmg);
-          socket.emit('hurtEnemy',attackdmg);
-        }
-        
+          this.comboTimer = comboTimeMax;
+          this.currentCombo+=1;
+          if(this.currentCombo>=3){
+            this.currentCombo=0;
+            socket.emit('launchEnemy',attackdmg);
+            AIEnemy.hurt(attackdmg);//handle in server instead
+          } else {
+            AIEnemy.hurt(attackdmg);//handle in server instead
+            socket.emit('hurtEnemy',attackdmg);
+          }
+        }  
       }
       this.frameIndex+= 1;
       if(this.frameIndex > 10 && !(keyIsDown(DOWN_ARROW))){
@@ -641,6 +641,28 @@ class PlayerFighter{
     if(this.invincibilityPeriod){
       this.state = 9;
     }
+    if(this.posy < floorLevel){
+      if(this.jumpingAttack){
+        this.sprite.addImage(this.jumpAttackImage);
+      } else if (this.tossed){
+        this.sprite.addImage(this.tossImage);
+      } else {
+        this.sprite.addImage(this.jumpImage);
+      }
+      if(this.tossed){
+        this.state=10;
+      } else {
+        this.state = 4;
+      }
+      
+      this.posy -= this.yVelocity;
+      this.yVelocity -= this.dampening;
+    } else {
+      this.jumpingAttack = false;
+      this.posy = floorLevel;
+      this.yVelocity = 0;
+      this.tossed=false;
+    }
   }
 
   attack(){
@@ -656,9 +678,8 @@ class PlayerFighter{
       this.sprite.addImage(this.attackImage1);
       this.state=8;
     }
-    
-    //this.state = 1;
   }
+
   idle(){
     this.sprite.addImage(this.idleImage);
     this.state = 0;
@@ -670,10 +691,7 @@ class PlayerFighter{
     this.sprite.addImage(this.walkBackwardsImage);
   }
   right(){
-    //if(this.posx < AIEnemy.posx - AIEnemy.image.width){
-      this.posx +=5;
-    //}
-    //[][][][][]]^^ uncomment
+    this.posx +=5;
     this.sprite.addImage(this.walkImage);
   }
   jump(){
@@ -690,9 +708,26 @@ class PlayerFighter{
   }
   hurt(dmg){
     if(!this.invincibilityPeriod){
+      this.currentCombo = 0;
       this.health -= dmg;
       this.invincibilityPeriod = true;
     }
+  }
+  toss(dmg){
+    this.tossed=true;
+    this.currentCombo = 0;
+    this.health -= dmg;
+    this.invincibilityPeriod = true;
+    this.sprite.addImage(this.tossImage);
+    this.state = 10;
+    this.yVelocity = this.jumpPower/2;
+    this.posy -= this.yVelocity;
+    if(this.posx > AIEnemy.posx){
+      this.xAirVelocity = this.airSpeed/2;
+    } else {
+      this.xAirVelocity = -this.airSpeed/2;
+    }
+    //maybe this.invincibilityPeriod
   }
 }
 

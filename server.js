@@ -175,6 +175,11 @@ io.on('connection', function(socket){
         //getOtherPlayer(socket).emit('message', "you got punched dude");
         getOtherPlayer(socket).emit('hurtPlayer',dmg);
     });
+    socket.on('launchEnemy', (dmg) => {
+        console.log("got launch command from socket");
+        //getOtherPlayer(socket).emit('message', "you got punched dude");
+        getOtherPlayer(socket).emit('launchPlayer',dmg);
+    });
 });
 
 function getOtherPlayer(sock){
