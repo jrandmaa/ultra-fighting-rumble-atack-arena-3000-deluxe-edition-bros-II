@@ -96,12 +96,20 @@ io.on('connection', function(socket){
         socket.emit('updateRooms', rooms);
     });
 
+    socket.on('deleteRoom', function() {
+        delete rooms[clientInfo[socket.id]];
+    });
+
     socket.on('disconnect', function() {
         //GET ROOM FROM ID, AND DECREMENT ROOM VAL HERE [][][]
         rooms[clientInfo[socket.id]] = rooms[clientInfo[socket.id]] - 1;
         if(rooms[clientInfo[socket.id]] != 1){
             delete rooms[clientInfo[socket.id]];
         }
+        if(clientInfo[socket.id] != null){
+            getOtherPlayer(socket).emit('player2Disconnect');
+        }
+        
         //let rooms = {};//room:numconnected
         //let clientInfo = {};//id:room
         
@@ -176,8 +184,6 @@ io.on('connection', function(socket){
         getOtherPlayer(socket).emit('hurtPlayer',dmg);
     });
     socket.on('launchEnemy', (dmg) => {
-        console.log("got launch command from socket");
-        //getOtherPlayer(socket).emit('message', "you got punched dude");
         getOtherPlayer(socket).emit('launchPlayer',dmg);
     });
 });

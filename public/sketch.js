@@ -67,6 +67,8 @@ let winDisplayTimer = 0;
 
 let comboTimeMax=30;
 
+let p2Disconnect = false;
+
 /*
 now:
 - make new spritesheet, make sure character switch works
@@ -181,14 +183,16 @@ function setup() {
     playerFighter.hurt(dmg);
   });
 
+  socket.on('player2Disconnect',function() {
+    console.log("Player 2 disconnected, exiting game...");
+    partnerDisconnected();
+  });
+  
+
   socket.on('launchPlayer', (dmg) => {
     playerFighter.toss(dmg);
   });
-
-  
-
     socket.emit('requestAvailableRooms');
-
     //SOCKET: EMIT createRoom !!!!!!!
     frameRate(100);
 }
@@ -215,17 +219,33 @@ function joinRoom(){
   //startGameButton
 }
 
+function partnerDisconnected(){
+  //send server message to delete room
+  //kick back to menu
+  socket.emit('deleteRoom');
+  p2Disconnect = true;
+  reloadGame();
+}
+
+function reloadGame(){
+  menuState = 1;
+  refreshRooms();
+  loadRoomUI();
+  joinRoomButton.show();
+  refreshButton.show();
+  roomNameInput.show();
+  UIrooms.forEach(rm => rm.show());
+  
+  playerCharacterName = null;
+  player2CharacterName = null;
+}
+
 function selectCharacter(name){
   playerFighter.setCharacter(name);
   socket.emit('playerSelected',name);
   console.log("name: "+name);
   playerCharacterName = name;
   player1CharacterLarge=(loadImage('Assets/Characters/'+name+'/idle.gif'));
-
-  /*player1CharacterLarge.position = (-300,30);
-  player1CharacterLarge.height = 200;*/
-
-  //socket.emit('playerSelected',name);//maybe room too
 
   //Player 1 has selected: (larger portrait on left), 
   //send message to server with room and character chosen
@@ -266,6 +286,7 @@ function draw() {
   switch(menuState){
     case 0:
       background(0);
+      startButton.show();
       break;
     case 1:
       background(109, 107, 125);
@@ -273,16 +294,22 @@ function draw() {
       textFont(UIFont);
       textSize(20);
       text('Join an existing room or create a new one.',-180, 190);      
+      if(p2Disconnect){
+        textFont(UIFont);
+        textSize(25);
+        text('Player 2 has disconnected',-140,-200);
+      }
       break;
     case 2:
+      p2Disconnect = false;
       //button to start
       background(69, 67, 85);
-      textFont(UIFont);
       if(playerCharacterName != null && player2CharacterName != null){
         startGameButton.position(canvas.width/2 - 40,canvas.height - 100);
       } else {
         startGameButton.position(canvas.width+300,canvas.height + 300);
       }
+      textFont(UIFont);
       textSize(20);
       let p1Posx =  -375 + (player1CharacterLarge.width/2);
       let p2Posx = 175 + (player2CharacterLarge.width/2);
@@ -487,7 +514,6 @@ class AIFighter{
       this.health -= dmg;
       this.invincibilityPeriod = true;
     }
-    
   }
 }
 
@@ -519,10 +545,6 @@ class PlayerFighter{
 
   attackIndex = 0;
   constructor(px,py,characterName){
-    /*var obj = JSON.parse('{ "name":"John", "age":30, "city":"New York"}');
-    console.log(obj.name);
-    let requestURL = 'Assets/Characters/Stick/Stick.json';*/
-    
     //[][][][][][][][][][][][][][][][][][][][][][][][][][][][][][]
     this.posx = px;
     this.posy = py;
@@ -742,6 +764,10 @@ function keyPressed(){
 
 socket.on('connectionSuccess', function(data) {
   console.log('Successfully connected to room with ID = ', data);
+  joinRoomButton.hide();
+  refreshButton.hide();
+  roomNameInput.hide();
+  UIrooms.forEach(rm => rm.hide());
 });
 
 socket.on('message', function(data) {
@@ -791,7 +817,7 @@ class availableRoomUI {
   constructor(room,index,numPlayers){//and # players?
     this.numPlayers = numPlayers;
     this.roomName = room;
-    this.button = createButton(room + "---------------|---------------"+numPlayers+" in room");//createImg('Assets/Placeholder/UIBox.png');//createButton(room + '__________________________Players: ' + numPlayers);//+ '     ' + numPlayers);
+    this.button = createButton(room + " ||  "+numPlayers+" in room");//createImg('Assets/Placeholder/UIBox.png');//createButton(room + '__________________________Players: ' + numPlayers);//+ '     ' + numPlayers);
     this.button.size(this.bWidth,this.bHeight);
     this.posx = canvas.width/2 - this.bWidth/2;
     this.posy = this.topMargin+(index*this.bHeight);
