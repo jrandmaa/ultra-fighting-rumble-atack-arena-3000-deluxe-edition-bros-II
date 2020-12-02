@@ -69,6 +69,8 @@ let comboTimeMax=30;
 
 let p2Disconnect = false;
 
+let hitsounds = [];
+
 /*
 now:
 - make new spritesheet, make sure character switch works
@@ -96,7 +98,7 @@ function preload(){
 function pullData(info){
   //characterInfo = info;
   characters = info;
-  console.log(info);
+  //console.log(info);
   //console.log(ass[0]);
 }
 
@@ -112,6 +114,13 @@ function setup() {
   canvas = createCanvas(canvasWidth, canvasHeight, WEBGL);
   canvas.drawingContext.imageSmoothingEnabled = false;
   // noStroke();
+  soundFormats('mp3');
+  hitsounds = [
+    loadSound('Assets/Sounds/punch1.mp3'),
+    loadSound('Assets/Sounds/punch2.mp3'),
+    loadSound('Assets/Sounds/punch3.mp3'),
+    loadSound('Assets/Sounds/toss.mp3')
+  ];
 
   player1CharacterLarge = (loadImage('Assets/empty.png'));//Characters/Stick/idle.gif'));
   player2CharacterLarge = (loadImage('Assets/empty.png'));//Characters/Stick/idle.gif'));
@@ -508,9 +517,13 @@ class AIFighter{
     this.sprite.display();
   }
   hurt(dmg){
+    let soundIndex = Math.floor(Math.random()*3);
+    hitsounds[soundIndex].play();
+    console.log(soundIndex);
     if(!this.invincibilityPeriod){
       //console.log(this.health+"    "+AIEnemy.health);
       //this.posy += 1;
+      
       this.health -= dmg;
       this.invincibilityPeriod = true;
     }
@@ -600,6 +613,7 @@ class PlayerFighter{
           this.currentCombo+=1;
           if(this.currentCombo>=3){
             this.currentCombo=0;
+            hitsounds[3].play();
             socket.emit('launchEnemy',attackdmg);
             AIEnemy.hurt(attackdmg);//handle in server instead
           } else {
@@ -729,13 +743,17 @@ class PlayerFighter{
     }
   }
   hurt(dmg){
+    let soundIndex = Math.floor(Math.random()*3);
+    hitsounds[soundIndex].play();
     if(!this.invincibilityPeriod){
+      
       this.currentCombo = 0;
       this.health -= dmg;
       this.invincibilityPeriod = true;
     }
   }
   toss(dmg){
+    hitsounds[3].play();
     this.tossed=true;
     this.currentCombo = 0;
     this.health -= dmg;
