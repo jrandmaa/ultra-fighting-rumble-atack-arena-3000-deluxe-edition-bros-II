@@ -96,10 +96,7 @@ function preload(){
 }
 
 function pullData(info){
-  //characterInfo = info;
   characters = info;
-  //console.log(info);
-  //console.log(ass[0]);
 }
 
 function startTitle(){
@@ -143,9 +140,7 @@ function setup() {
    //-----socket shit-------
 
   socket.on('heartbeat', (data) => {
-    //console.log(data);
     connectedClients = [];
-
       data.forEach((item, i) => {
           //console.log(item.pass);
           if(item.id != socket.id){
@@ -463,7 +458,6 @@ class AIFighter{
       this.sprite.mirrorX(1);
     }
     
-    //console.log(this.state);
     switch(this.state){
         case 0:
           this.currImage = this.idleImage;
@@ -519,11 +513,7 @@ class AIFighter{
   hurt(dmg){
     let soundIndex = Math.floor(Math.random()*3);
     hitsounds[soundIndex].play();
-    console.log(soundIndex);
-    if(!this.invincibilityPeriod){
-      //console.log(this.health+"    "+AIEnemy.health);
-      //this.posy += 1;
-      
+    if(!this.invincibilityPeriod){      
       this.health -= dmg;
       this.invincibilityPeriod = true;
     }
@@ -868,7 +858,6 @@ class CharacterSelectPortrait{
     this.portraitImage = createImg('Assets/Characters/'+character.name+'/portrait.png');
     this.portraitImage.mousePressed(function() {selectCharacter(character.name);});
     this.portraitImage.position((canvas.width/2 - (65))+(index * 65),100);//canvas.width/2 - (totalCharacters/2 * 65) for x
-    console.log(index);
     this.portraitImage.size(60,60);
   }
   hide(){
