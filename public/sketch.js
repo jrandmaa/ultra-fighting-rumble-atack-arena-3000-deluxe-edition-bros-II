@@ -690,7 +690,6 @@ class PlayerFighter{
       } else {
         this.state = 4;
       }
-      
       this.posy -= this.yVelocity;
       this.yVelocity -= this.dampening;
     } else {
