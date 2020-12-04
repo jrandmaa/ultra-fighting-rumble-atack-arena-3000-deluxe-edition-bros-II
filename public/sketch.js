@@ -348,7 +348,7 @@ function draw() {
       setGradient(50 + canvas.width/2.5 * (1/AIEnemy.health/100),-canvas.height/3 - 50,canvas.width/2.5 * (AIEnemy.health/100),15,hpGradientColor2,hpGradientColor1,"X");*/
   
       camTargetX = -playerFighter.posx;// 300;//-1 *(playerFighter.posx + AIEnemy.posx)/2;
-      ambientLight(10,10,10);//xInput.value(),xInput.value(),xInput.value());
+      ambientLight(36, 40, 43);//xInput.value(),xInput.value(),xInput.value());
       spotLight(235,255,255, camTargetX +258,-315,-145,0,1,0, 100);
       spotLight(235,255,255, camTargetX +258,-315,-145,0,1,0, 100);
       spotLight(235,255,255, camTargetX -100,-415,-145,0,1,0, 100);
