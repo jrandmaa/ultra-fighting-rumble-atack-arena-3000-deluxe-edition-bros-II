@@ -9,7 +9,7 @@ let canvasHeight = 500;
 
 let canvas;
 
-let img, mod, BGtext, BGImage;
+let img, mod, BGtext, BGImage, logo;
 let theta = 0;
 let gradient;
 let myShader;
@@ -90,9 +90,10 @@ function preload(){
   UIFont = loadFont('Assets/Placeholder/SHPinscher-Regular.otf');
   loadJSON('Assets/JSON/characters.json', pullData);
   BGtext = loadImage('Assets/Textures/tempBG-text-f8.png');
-  BGImage = loadImage('Assets/Textures/sky.png');
+  //BGImage = loadImage('Assets/Textures/sky.png');
   mod = loadModel('tempBG2.obj');
   myShader = loadShader('basic.vert', 'basic.frag');
+  logo = loadImage('Assets/Textures/logo.png');
 }
 
 function pullData(info){
@@ -107,9 +108,8 @@ function startTitle(){
 
 function setup() {
   console.log('player id: ', socket.id);
-  //socket.emit('roomEntered', roomPassword);
   canvas = createCanvas(canvasWidth, canvasHeight, WEBGL);
-  canvas.drawingContext.imageSmoothingEnabled = false;
+  canvas.drawingContext.imageSmoothingEnabled = false;//this disables anti-aliasing
   // noStroke();
   soundFormats('mp3');
   hitsounds = [
@@ -119,14 +119,14 @@ function setup() {
     loadSound('Assets/Sounds/toss.mp3')
   ];
 
-  player1CharacterLarge = (loadImage('Assets/empty.png'));//Characters/Stick/idle.gif'));
-  player2CharacterLarge = (loadImage('Assets/empty.png'));//Characters/Stick/idle.gif'));
+  player1CharacterLarge = (loadImage('Assets/empty.png'));
+  player2CharacterLarge = (loadImage('Assets/empty.png'));
   player1CharacterLarge.height = 200;
   player2CharacterLarge.height = 200;
 
   startButton = createImg('Assets/UI/START.png');
   startButton.mousePressed(startTitle);
-  startButton.position(canvas.width/2 - 50,canvas.height*3/4)
+  startButton.position(canvas.width/2 - 50,canvas.height - 50);
   AIEnemy = new AIFighter(300,floorLevel);//BELOW - used to be -300
   playerFighter = new PlayerFighter(-Math.floor(Math.random() * 300) - 1,floorLevel,"Stick");
 
@@ -287,9 +287,11 @@ function draw() {
     })
   //CAMERA: zoom to fit both characters
   //camtargetx is average of both x values
+  
   switch(menuState){
     case 0:
       background(0);
+      image(logo,-230,-265);
       startButton.show();
       break;
     case 1:
@@ -297,7 +299,10 @@ function draw() {
       UIrooms.forEach(rm => drawRoomText(rm));
       textFont(UIFont);
       textSize(20);
-      text('Join an existing room or create a new one.',-180, 190);      
+      text('Join an existing room or create a new one.',-180, 190);     
+      textSize(15);
+      text('Click on a room and click "Join room" to join',-160, 210);   
+      text('If no rooms are displayed, refresh or type a name and click "Join room" to create a new room!"',-280, 230);      
       if(p2Disconnect){
         textFont(UIFont);
         textSize(25);
@@ -311,16 +316,24 @@ function draw() {
       if(playerCharacterName != null && player2CharacterName != null){
         startGameButton.position(canvas.width/2 - 40,canvas.height - 100);
       } else {
-        startGameButton.position(canvas.width+300,canvas.height + 300);
+        startGameButton.position(canvas.width+3000,canvas.height + 3000);
       }
       textFont(UIFont);
       textSize(20);
       let p1Posx =  -375 + (player1CharacterLarge.width/2);
       let p2Posx = 175 + (player2CharacterLarge.width/2);
-      text('Player 1',p1Posx + player1CharacterLarge.width/2,-60);
-      text('Player 2',p2Posx + player2CharacterLarge.width/2,-60);
       image(player1CharacterLarge, p1Posx,-50,player1CharacterLarge.width*1.75,player1CharacterLarge.height*1.75);
       image(player2CharacterLarge, p2Posx,-50,player2CharacterLarge.width*1.75,player2CharacterLarge.height*1.75);
+      
+      
+      text('Player 1',p1Posx + player1CharacterLarge.width/2,-60);
+      text('Player 2',p2Posx + player2CharacterLarge.width/2,-60);
+      textSize(35);
+      if(playerCharacterName!= null){
+        text(playerCharacterName,p1Posx + player1CharacterLarge.width/2,220);
+      } else if (player2CharacterName != null){
+        text(player2CharacterName,p2Posx + player2CharacterLarge.width/2,220);
+      }
       //characterPortraits.forEach(char => char.portraitImage.draw());
       break;
     case 3:
@@ -416,6 +429,7 @@ function draw() {
   }
   socket.emit('update', data);  
   //move shit to different files so i dont have 800 lines again************************
+  
 }
 
 function displayPlayer(ply){
@@ -434,24 +448,41 @@ class AIFighter{
   }
 
   setCharacter(chr){
-    this.crouchImage = loadImage('Assets/Characters/'+chr+'/crouch.png');
-    this.idleImage = loadImage('Assets/Characters/'+chr+'/idle.gif');
-    this.standingAttackImage = loadImage('Assets/Characters/'+chr+'/standing-attack.png');
-    this.jumpAttack = loadImage('Assets/Characters/'+chr+'/jump-attack.png');
-    this.walkImage = loadImage('Assets/Characters/'+chr+'/walk.gif');
-    this.walkBackwardsImage = loadImage('Assets/Characters/'+chr+'/walk-reverse.gif');
-    this.jumpImage = loadImage('Assets/Characters/'+chr+'/jump.png');
-    this.attackImage1 = loadImage('Assets/Characters/'+chr+'/standing-attack1.png');
-    this.attackImage2 = loadImage('Assets/Characters/'+chr+'/standing-attack2.png');
-    this.flinchImage = loadImage('Assets/Characters/'+chr+'/flinch.png');
-    this.tossImage = loadImage('Assets/Characters/'+chr+'/toss.png');
+    if(chr == 'Stick' || chr == 'Maurice'){
+      this.crouchImage = loadImage('Assets/Characters/'+chr+'/crouch.png');
+      this.idleImage = loadImage('Assets/Characters/'+chr+'/idle.gif');
+      this.standingAttackImage = loadImage('Assets/Characters/'+chr+'/standing-attack.png');
+      this.attackImage1 = loadImage('Assets/Characters/'+chr+'/standing-attack1.png');
+      this.attackImage2 = loadImage('Assets/Characters/'+chr+'/standing-attack2.png');
+      this.jumpAttackImage = loadImage('Assets/Characters/'+chr+'/jump-attack.png');
+      this.walkImage = loadImage('Assets/Characters/'+chr+'/walk.gif');
+      this.walkBackwardsImage = loadImage('Assets/Characters/'+chr+'/walk-reverse.gif');
+      this.jumpImage = loadImage('Assets/Characters/'+chr+'/jump.png');
+      this.flinchImage = loadImage('Assets/Characters/'+chr+'/flinch.png');
+      this.tossImage = loadImage('Assets/Characters/'+chr+'/toss.png');
+    } else {
+      this.crouchImage = loadImage('Assets/Characters/'+chr+'/crouch.png');
+      this.idleImage = loadImage('Assets/Characters/'+chr+'/idle.gif');
+      this.standingAttackImage = loadImage('Assets/Characters/'+chr+'/standing-attack.png');
+      this.attackImage1 = loadImage('Assets/Characters/'+chr+'/standing-attack.png');
+      this.attackImage2 = loadImage('Assets/Characters/'+chr+'/standing-attack.png');
+      this.jumpAttackImage = loadImage('Assets/Characters/'+chr+'/standing-attack.png');
+      this.walkImage = loadImage('Assets/Characters/'+chr+'/walk.gif');
+      this.walkBackwardsImage = loadImage('Assets/Characters/'+chr+'/walk.gif');
+      this.jumpImage = loadImage('Assets/Characters/'+chr+'/jump.png');
+      this.flinchImage = loadImage('Assets/Characters/'+chr+'/flinch.png');
+      this.tossImage = loadImage('Assets/Characters/'+chr+'/flinch.png');
+    }
     //this.walkImage2 = loadImage('Assets/Placeholder/default-player-walk2.png');
     this.sprite.addImage(this.idleImage);
     this.currImage = this.idleImage;
   }
 
   display(){
-    this.sprite.addImage(this.currImage);
+    if(this.currImage != null){
+      this.sprite.addImage(this.currImage);
+    }
+    
     if(this.posx > playerFighter.posx){
       this.sprite.mirrorX(-1);
     } else {
@@ -555,19 +586,87 @@ class PlayerFighter{
   }
 
   setCharacter(chr){
-    this.crouchImage = loadImage('Assets/Characters/'+chr+'/crouch.png');
-    this.idleImage = loadImage('Assets/Characters/'+chr+'/idle.gif');
-    this.standingAttackImage = loadImage('Assets/Characters/'+chr+'/standing-attack.png');
-    this.attackImage1 = loadImage('Assets/Characters/'+chr+'/standing-attack1.png');
-    this.attackImage2 = loadImage('Assets/Characters/'+chr+'/standing-attack2.png');
-    this.jumpAttackImage = loadImage('Assets/Characters/'+chr+'/jump-attack.png');
-    this.walkImage = loadImage('Assets/Characters/'+chr+'/walk.gif');
-    this.walkBackwardsImage = loadImage('Assets/Characters/'+chr+'/walk-reverse.gif');
-    this.jumpImage = loadImage('Assets/Characters/'+chr+'/jump.png');
-    this.flinchImage = loadImage('Assets/Characters/'+chr+'/flinch.png');
-    this.tossImage = loadImage('Assets/Characters/'+chr+'/toss.png');
+    //catch image not exist
+    if(chr == 'Stick' || chr == 'Maurice'){
+      this.crouchImage = loadImage('Assets/Characters/'+chr+'/crouch.png');
+      this.idleImage = loadImage('Assets/Characters/'+chr+'/idle.gif');
+      this.standingAttackImage = loadImage('Assets/Characters/'+chr+'/standing-attack.png');
+      this.attackImage1 = loadImage('Assets/Characters/'+chr+'/standing-attack1.png');
+      this.attackImage2 = loadImage('Assets/Characters/'+chr+'/standing-attack2.png');
+      this.jumpAttackImage = loadImage('Assets/Characters/'+chr+'/jump-attack.png');
+      this.walkImage = loadImage('Assets/Characters/'+chr+'/walk.gif');
+      this.walkBackwardsImage = loadImage('Assets/Characters/'+chr+'/walk-reverse.gif');
+      this.jumpImage = loadImage('Assets/Characters/'+chr+'/jump.png');
+      this.flinchImage = loadImage('Assets/Characters/'+chr+'/flinch.png');
+      this.tossImage = loadImage('Assets/Characters/'+chr+'/toss.png');
+    } else {
+      this.crouchImage = loadImage('Assets/Characters/'+chr+'/crouch.png');
+      this.idleImage = loadImage('Assets/Characters/'+chr+'/idle.gif');
+      this.standingAttackImage = loadImage('Assets/Characters/'+chr+'/standing-attack.png');
+      this.attackImage1 = loadImage('Assets/Characters/'+chr+'/standing-attack.png');
+      this.attackImage2 = loadImage('Assets/Characters/'+chr+'/standing-attack.png');
+      this.jumpAttackImage = loadImage('Assets/Characters/'+chr+'/standing-attack.png');
+      this.walkImage = loadImage('Assets/Characters/'+chr+'/walk.gif');
+      this.walkBackwardsImage = loadImage('Assets/Characters/'+chr+'/walk.gif');
+      this.jumpImage = loadImage('Assets/Characters/'+chr+'/jump.png');
+      this.flinchImage = loadImage('Assets/Characters/'+chr+'/flinch.png');
+      this.tossImage = loadImage('Assets/Characters/'+chr+'/flinch.png');
+    }
+    
     //this.walkImage2 = loadImage('Assets/Placeholder/default-player-walk2.png');
     this.sprite.addImage(this.idleImage);
+  }
+  
+  /*
+  multiAttackImageLoadFailure(event){
+    //failure callback 
+    this.attackImage1 = loadImage('Assets/Characters/'+this.characterName+'/standing-attack.png');
+    this.attackImage2 = loadImage('Assets/Characters/'+this.characterName+'/standing-attack.png');
+  }
+
+  multiAttackImageLoadSuccess(image){
+    //success callback
+    this.attackImage1 = image;
+    this.attackImage2 = loadImage('Assets/Characters/'+this.characterName+'/standing-attack2.png');
+  }
+  */
+
+  /*
+  if(this.frameIndex > 0){
+      if(debugModeEnabled){
+        ellipse(this.posx + camTargetX+this.hitboxPosition[0], this.posy+this.hitboxPosition[1], 10,10);
+      }
+      if(this.posx + this.hitboxPosition[0] > AIEnemy.posx - AIEnemy.currImage.width){
+        if(!AIEnemy.invincibilityPeriod){
+          let attackdmg = 7;
+          this.comboTimer = comboTimeMax;
+          this.currentCombo+=1;
+          if(this.currentCombo>=3){
+            this.currentCombo=0;
+            hitsounds[3].play();
+            socket.emit('launchEnemy',attackdmg);
+            AIEnemy.hurt(attackdmg);//handle in server instead
+          } else {
+            AIEnemy.hurt(attackdmg);//handle in server instead
+            socket.emit('hurtEnemy',attackdmg);
+          }
+        }  
+      }
+      this.frameIndex+= 1;
+      if(this.frameIndex > 10 && !(keyIsDown(DOWN_ARROW))){
+        this.frameIndex = 0;
+        this.sprite.addImage(this.idleImage);
+      }
+    }
+    */
+
+  attackIntersects(){
+    if(this.posx > AIEnemy.posx){
+      return (this.posx - this.hitboxPosition[0] < AIEnemy.posx + AIEnemy.currImage.width);
+    } else {
+      return (this.posx + this.hitboxPosition[0] > AIEnemy.posx - AIEnemy.currImage.width);
+    }
+
   }
 
   display(){
@@ -594,9 +693,14 @@ class PlayerFighter{
     }
     if(this.frameIndex > 0){
       if(debugModeEnabled){
-        ellipse(this.posx + camTargetX+this.hitboxPosition[0], this.posy+this.hitboxPosition[1], 10,10);
+        if(this.posx > AIEnemy.posx){
+          ellipse(this.posx + camTargetX-this.hitboxPosition[0], this.posy+this.hitboxPosition[1], 10,10);
+        } else {
+          ellipse(this.posx + camTargetX+this.hitboxPosition[0], this.posy+this.hitboxPosition[1], 10,10);
+        }
+       
       }
-      if(this.posx + this.hitboxPosition[0] > AIEnemy.posx - AIEnemy.currImage.width){
+      if(this.attackIntersects()){
         if(!AIEnemy.invincibilityPeriod){
           let attackdmg = 7;
           this.comboTimer = comboTimeMax;
@@ -857,7 +961,7 @@ class CharacterSelectPortrait{
     this.character = character;
     this.portraitImage = createImg('Assets/Characters/'+character.name+'/portrait.png');
     this.portraitImage.mousePressed(function() {selectCharacter(character.name);});
-    this.portraitImage.position((canvas.width/2 - (65))+(index * 65),100);//canvas.width/2 - (totalCharacters/2 * 65) for x
+    this.portraitImage.position((canvas.width/2 - (150))+(index * 65),100);//canvas.width/2 - (totalCharacters/2 * 65) for x
     this.portraitImage.size(60,60);
   }
   hide(){
